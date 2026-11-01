@@ -2,7 +2,7 @@
 (()=>{
 const COLORS=[{n:'Pink',c:'#ec6fae',d:'#b8457e',l:'#ffc4e1'},{n:'Yellow',c:'#fbc02d',d:'#c08a00',l:'#fff176'},{n:'Blue',c:'#1e88e5',d:'#115a9e',l:'#90caf9'},{n:'Green',c:'#43a047',d:'#2a6e2d',l:'#a5d6a7'}];
 const BALLC=['#ff3b30','#ffcc00','#2f80ff','#34c759'];
-const AW=100,AL=260,BR=6.5,START={x:50,y:238},TRACK=24;
+const AW=100,AL=260,BR=6.5,START={x:50,y:238};let TRACK=24;
 const SPEED=Math.max(1,Math.min(10,+(new URLSearchParams(location.search).get('speed')||1)));
 const cv=document.getElementById('c');let cx=cv.getContext('2d');let shake=0;
 const $=id=>document.getElementById(id);
@@ -58,17 +58,18 @@ function musicStop(){MUS.on=false;clearInterval(MUS.timer);if(MUS.bus&&AC)MUS.bu
 let G=null;
 function makeRace(level,players){
  const r=rng(level*7919+13);
- const L=Math.min(level,8);
- const g=110+L*14;                       // steeper alley each race
- const gx=L>=4?(r()<.5?-1:1)*(6+L*2):0;  // sideways tilt later on
+ const L=Math.min(level,10);
+ TRACK=Math.min(30,20+(L-1));            // longer races later (20..29)
+ const g=105+L*18;                       // steeper alley each race
+ const gx=L>=3?(r()<.5?-1:1)*(3+L*2):0;  // sideways tilt from race 3, growing
  const HR=10.5,D=25,RG=D*Math.sqrt(3)/2;      // every hole the same size, every neighbour the same distance apart
  const top=40+r()*6,shift=(r()-.5)*(L>=3?8:0);
  const holes=[];
- for(let row=1;row<=4;row++){const y=top+(4-row)*RG;for(let k=0;k<row;k++){holes.push({x:50+shift+(k-(row-1)/2)*D,y,v:row,r:HR})}}
+ for(let row=1;row<=4;row++){const y=top+(4-row)*RG;for(let k=0;k<row;k++){holes.push({x:50+shift+(k-(row-1)/2)*D,y,v:row,r:HR*(row>=3?Math.max(.8,1-(L-1)*(row===4?.025:.018)):1)})}}
  const pegs=[];
  const themes=[['#c98d4f','#e0a96d'],['#b77b45','#d89c62'],['#cf9a5d','#ecc08a'],['#a8703f','#d0955a']];
  const humans=Math.max(1,Math.min(4,players));
- return{level,g,gx,holes,pegs,theme:themes[(level-1)%themes.length],cpuSkill:Math.min(.6,.3+L*.03),
+ return{level,g,gx,holes,pegs,theme:themes[(level-1)%themes.length],cpuSkill:Math.min(.75,.3+L*.045),
   horses:COLORS.map((c,i)=>({i,pos:0,shown:0,human:i<humans,finished:0,ga:null})),turn:0,humans,finishOrder:[]};
 }
 // ---------- state ----------
@@ -108,8 +109,8 @@ function launch(vx,vy){
  // solo: CPU horses decide their own results off-screen on their own clocks (see update)
 }
 // simple, fair CPU roll for solo races: mostly small gallops, sometimes a miss, rarely a big one
-function cpuQuickRoll(h){const L=Math.min(G.level,8),r=Math.random();
- const w=[.55,.3,.1,.04,.01]; /* gentle, flat: Molly should usually win */let a=0,v=0;const tot=w.reduce((x,y)=>x+y);for(let k=0;k<5;k++){a+=w[k]/tot;if(r<a){v=k;break}}
+function cpuQuickRoll(h){const L=Math.min(G.level,10),r=Math.random();
+ const w=[.6-(L-1)*.02,.3,.1+(L-1)*.008,.04+(L-1)*.006,.01+(L-1)*.004]; /* gentle, flat: Molly should usually win */let a=0,v=0;const tot=w.reduce((x,y)=>x+y);for(let k=0;k<5;k++){a+=w[k]/tot;if(r<a){v=k;break}}
  if(v>0&&h.pos<TRACK)startGallop(h,v)}
 function startGallop(h,n){if(h.ga){const add=Math.min(n,TRACK-(h.ga.from+h.ga.n));if(add>0){h.ga.n+=add;SFX.ding(add);effects.push({type:'plus',n:add,i:h.i,t:0})}return}
  n=Math.min(n,TRACK-h.pos);if(n<=0)return;h.ga={from:h.pos,n,t:0,k:0};SFX.ding(n);effects.push({type:'plus',n,i:h.i,t:0})}
@@ -153,7 +154,7 @@ function missed(){SFX.rollStop();SFX.miss();ball.on=false;state='returning';anim
 // ---------- update ----------
 function update(dt){
  time+=dt;
- if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=3.4+Math.random()*1.4}}if(shake>0)shake=Math.max(0,shake-dt);
+ if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=Math.max(2.6,3.6-(Math.min(G.level,10)-1)*.11)+Math.random()*1.2}}if(shake>0)shake=Math.max(0,shake-dt);
  if(state==='rolling'){const pd=dt*1.15,n=Math.ceil(pd/(1/240));for(let i=0;i<n&&state==='rolling';i++)step(pd/n)} // brisker, less floaty roll (same paths)
  else if(state==='dropping'){anim.t+=dt;if(anim.t>.32){SFX.rattle();state='returning';anim={type:'trough',t:0,v:anim.h.v,y:anim.h.y}}}
  else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.65:.4;if(anim.t>=dur){
@@ -383,7 +384,6 @@ function drawParallax(){const w=W(),h=H(),bx=(typeof ball!=='undefined'&&ball?ba
   cx.fillStyle=['#ffeb3b','#fff','#ffb74d','#4fc3f7','#fff','#aed581'][k];cx.globalAlpha=.55;cx.beginPath();cx.arc(x,y,3+k%2,0,7);cx.fill()}cx.globalAlpha=1}
 function frame(now){const dt=Math.min(.05,(now-lastT)/1000)*SPEED;lastT=now;
  if(G&&state!=='menu')update(dt);else time+=dt;
- if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=3.4+Math.random()*1.4}}
  cx.clearRect(0,0,W(),H());
  const bg=cx.createLinearGradient(0,0,0,H());bg.addColorStop(0,'#bfe9ff');bg.addColorStop(.35,'#9be08a');bg.addColorStop(1,'#6fc25d');cx.fillStyle=bg;cx.fillRect(0,0,W(),H());
  if(G)drawParallax();
