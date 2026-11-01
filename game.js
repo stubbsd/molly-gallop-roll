@@ -66,7 +66,6 @@ function makeRace(level,players){
  const holes=[];
  for(let row=1;row<=4;row++){const y=top+(4-row)*RG;for(let k=0;k<row;k++){holes.push({x:50+shift+(k-(row-1)/2)*D,y,v:row,r:HR})}}
  const pegs=[];
- if(L>=3){const n=L>=6?3:2;for(let i=0;i<n;i++)pegs.push({x:22+56*(n===1?.5:i/(n-1))+(r()-.5)*8,y:top+3*RG+40+r()*14,r:4.5})}
  const themes=[['#c98d4f','#e0a96d'],['#b77b45','#d89c62'],['#cf9a5d','#ecc08a'],['#a8703f','#d0955a']];
  const humans=Math.max(1,Math.min(4,players));
  return{level,g,gx,holes,pegs,theme:themes[(level-1)%themes.length],cpuSkill:Math.min(.92,.45+L*.06),
@@ -136,7 +135,6 @@ function step(dt){
  if(b.x<BR){b.x=BR;b.vx=Math.abs(b.vx)*.55;SFX.bump()}
  if(b.x>AW-BR){b.x=AW-BR;b.vx=-Math.abs(b.vx)*.55;SFX.bump()}
  if(b.y<BR+4){b.y=BR+4;b.vy=Math.abs(b.vy)*.35;SFX.bump()}
- for(const p of G.pegs){const dx=b.x-p.x,dy=b.y-p.y,d=Math.hypot(dx,dy),m=p.r+BR;if(d<m&&d>0){const nx=dx/d,ny=dy/d;b.x=p.x+nx*m;b.y=p.y+ny*m;const vn=b.vx*nx+b.vy*ny;if(vn<0){b.vx-=1.7*vn*nx;b.vy-=1.7*vn*ny;SFX.bump()}}}
  for(const h of G.holes){const dx=h.x-b.x,dy=h.y-b.y,d=Math.hypot(dx,dy);
   if(d<h.r){ // over the hole: lip pulls it in unless it's going too fast
    const cap=70+h.r*5;
@@ -332,11 +330,6 @@ function alleyStatic(){
   const wg2=cx.createLinearGradient(0,c.y-ry,0,c.y+ry);wg2.addColorStop(0,'#3a2412');wg2.addColorStop(.5,'#140b05');wg2.addColorStop(1,'#000');cx.fillStyle=wg2;cx.fillRect(c.x-rx,c.y-ry,rx*2,ry*2);
   const hg=cx.createRadialGradient(c.x,c.y+ry*.55,0,c.x,c.y+ry*.55,rx);hg.addColorStop(0,'#000');hg.addColorStop(.8,'#050505');hg.addColorStop(1,'rgba(0,0,0,.9)');
   cx.fillStyle=hg;cx.beginPath();cx.ellipse(c.x,c.y+ry*.5,rx*.97,ry*.95,0,0,7);cx.fill();cx.restore()}
- // pegs as little 3D posts
- for(const p of G.pegs){const c=P(p.x,p.y),r=p.r*S*c.k,ry=r*(.42+.3*c.t),hh=r*1.3;
-  cx.fillStyle='rgba(0,0,0,.25)';cx.beginPath();cx.ellipse(c.x+r*.3,c.y+ry*.3,r*1.1,ry*1.1,0,0,7);cx.fill();
-  cx.fillStyle='#c8417f';cx.fillRect(c.x-r,c.y-hh,2*r,hh);cx.beginPath();cx.ellipse(c.x,c.y,r,ry,0,0,7);cx.fill();
-  cx.fillStyle='#ff8cc0';cx.beginPath();cx.ellipse(c.x,c.y-hh,r,ry,0,0,7);cx.fill()}
 }
 function drawAlley(){
  const S=L.S;cached('alley',()=>alleyStatic());
