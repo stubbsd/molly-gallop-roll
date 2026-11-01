@@ -210,7 +210,7 @@ function cached(name,fn){const k=[name,cv.width,cv.height,G.level,G.holes.map(h=
 function rg(x,y,r,c0,c1,c2){const g=cx.createRadialGradient(x-r*.35,y-r*.45,r*.05,x,y,r*1.15);g.addColorStop(0,c0);g.addColorStop(.45,c1);g.addColorStop(1,c2);return g}
 function blob(x,y,rx,ry,rot,fill){cx.fillStyle=fill;cx.beginPath();cx.ellipse(x,y,rx,ry,rot||0,0,7);cx.fill()}
 // chunky shaded cartoon horse with a friendly jockey; origin = ground under the belly
-let HATNONE=false;
+let HATNONE=false;const GUT=[];window.__gut=()=>GUT.slice();
 function drawHat(h,ax=25,ay=-36,ro=.25){if(!h)return;cx.save();cx.translate(ax,ay);cx.rotate(ro);
  if(h===1){cx.fillStyle='#4fc3f7';cx.beginPath();cx.moveTo(-6,0);cx.lineTo(6,0);cx.lineTo(0,-16);cx.closePath();cx.fill();cx.fillStyle='#ffeb3b';for(const [x,y] of [[-2,-4],[2,-8],[-1,-11]]){cx.beginPath();cx.arc(x,y,1.3,0,7);cx.fill()}cx.fillStyle='#ff9800';cx.beginPath();cx.arc(0,-17,2.6,0,7);cx.fill()}
  else if(h===2){cx.fillStyle='#a0682f';cx.beginPath();cx.ellipse(0,0,13,3.5,0,0,7);cx.fill();cx.fillStyle='#8a5526';cx.beginPath();cx.moveTo(-6,0);cx.quadraticCurveTo(-7,-11,0,-10);cx.quadraticCurveTo(7,-11,6,0);cx.closePath();cx.fill();cx.fillStyle='#e53935';cx.fillRect(-6,-3,12,2)}
@@ -419,6 +419,10 @@ function drawAlley(){
   if(anim.type==='trough'){const k=anim.t/.65;if(k<.7){bx=110;by=anim.y+(AL-6-anim.y)*(k/.7)}else{const q=(k-.7)/.3;bx=110+(START.x-110)*q;by=AL-6+(START.y-(AL-6))*q}}
   else{const k=anim.t/.4;bx=anim.x+(START.x-anim.x)*k;by=anim.y+(START.y-anim.y)*k}}
  else if(state==='galloping'||state==='finish'){bx=START.x;by=START.y}
+ if(state==='returning'){const gy=anim.type==='trough'?Math.min(AL,by):(anim.t/.4)*AL;for(let y=30,j=0;y<AL;y+=40,j++)if(gy>=y&&!GUT[j])GUT[j]=time}else if(state==='aim'||state==='menu')GUT.length=0;
+ if(GUT.length){const GC=['#ff3b3b','#ff9800','#ffeb3b','#4cdf50','#2fa8ff','#a65cff'];cx.save();for(let y=30,j=0;y<AL;y+=40,j++){if(!GUT[j])continue;const e=time-GUT[j],a=Math.max(.35,1-e*1.2);const A=P(107,y),B=P(113,y),C=P(110,y+7),col=GC[j%6];
+   cx.globalAlpha=a;cx.shadowColor=col;cx.shadowBlur=14*S;cx.fillStyle=col;cx.beginPath();cx.moveTo(A.x,A.y);cx.lineTo(B.x,B.y);cx.lineTo(C.x,C.y);cx.closePath();cx.fill();cx.fill();
+   if(e<.25){cx.globalAlpha=(.25-e)*3;cx.fillStyle='#fff';cx.beginPath();cx.arc((A.x+B.x+C.x)/3,(A.y+B.y+C.y)/3,6*S*A.k,0,7);cx.fill()}}cx.restore()}
  drawBall(bx,by,bs,bc,sink);
  if(state==='aim'&&!drag){const pulse=(Math.sin(time*5)+1)/2;const a=P(START.x,START.y-14),b=P(START.x,START.y-70);cx.strokeStyle=`rgba(255,255,255,${.4+pulse*.4})`;cx.lineWidth=3;cx.setLineDash([6,8]);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();cx.setLineDash([]);
   const f=P(START.x+16,START.y+6+pulse*-8);cx.font=`${20*S}px system-ui`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('👆',f.x,f.y)}
