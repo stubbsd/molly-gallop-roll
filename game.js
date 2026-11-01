@@ -4,7 +4,7 @@ const COLORS=[{n:'Red',c:'#e53935',d:'#a91f1c',l:'#ff8a80'},{n:'Yellow',c:'#fbc0
 const BALLC=['#ff3b30','#ffcc00','#2f80ff','#34c759'];
 const AW=100,AL=260,BR=6.5,START={x:50,y:238},TRACK=16;
 const SPEED=Math.max(1,Math.min(10,+(new URLSearchParams(location.search).get('speed')||1)));
-const cv=document.getElementById('c');let cx=cv.getContext('2d');
+const cv=document.getElementById('c');let cx=cv.getContext('2d');let shake=0;
 const $=id=>document.getElementById(id);
 // ---------- storage ----------
 const SKEY='mollyGallopRoll.v1';
@@ -24,7 +24,7 @@ const SFX={
  roll(sp){if(rollGain)rollGain.gain.setTargetAtTime(Math.min(.25,sp/900)*(.7+.3*Math.random()),AC.currentTime,.03)},
  rollStop(){if(rollNode){try{rollGain.gain.setTargetAtTime(0,AC.currentTime,.03);rollNode.stop(AC.currentTime+.15)}catch(e){}rollNode=null;rollGain=null}},
  bump(){if(!AC)return;const t=AC.currentTime;tone(220,t,.08,'triangle',.15,140)},
- drop(){if(!AC)return;const t=AC.currentTime;tone(300,t,.25,'sine',.3,90);for(let i=0;i<5;i++)noise(t+.08+i*.07,.06,.25,1800+Math.random()*900,4)},
+ drop(){if(!AC)return;const t=AC.currentTime;tone(140,t,.12,'sine',.45,55);tone(300,t,.2,'sine',.25,90);for(let i=0;i<5;i++)noise(t+.08+i*.07,.06,.25,1800+Math.random()*900,4)},
  rattle(){if(!AC)return;const t=AC.currentTime;for(let i=0;i<7;i++)noise(t+i*.09,.05,.12,900+Math.random()*600,5)},
  clop(i){if(!AC)return;const t=AC.currentTime;noise(t,.05,.35,i%2?1200:900,6);noise(t+.09,.05,.3,i%2?1000:800,6)},
  ding(n){if(!AC)return;const t=AC.currentTime;for(let i=0;i<n;i++)tone(660*Math.pow(1.26,i),t+i*.1,.25,'sine',.15)},
@@ -127,15 +127,15 @@ function step(dt){
 function sink(h){
  SFX.rollStop();SFX.drop();ball.on=false;state='dropping';
  const hv=cur();anim={type:'drop',h,t:0,x:ball.x,y:ball.y};
- effects.push({type:'ring',x:h.x,y:h.y,t:0,c:COLORS[hv.i].c});
+ effects.push({type:'ring',x:h.x,y:h.y,t:0,c:COLORS[hv.i].c});shake=.18;
 }
 function missed(){SFX.rollStop();SFX.miss();ball.on=false;state='returning';anim={type:'back',t:0,x:ball.x,y:ball.y,v:0}}
 // ---------- update ----------
 function update(dt){
- time+=dt;
- if(state==='rolling'){const n=Math.ceil(dt/(1/240));for(let i=0;i<n&&state==='rolling';i++)step(dt/n)}
- else if(state==='dropping'){anim.t+=dt;if(anim.t>.5){SFX.rattle();state='returning';anim={type:'trough',t:0,v:anim.h.v,y:anim.h.y}}}
- else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?1.1:.6;if(anim.t>=dur){
+ time+=dt;if(shake>0)shake=Math.max(0,shake-dt);
+ if(state==='rolling'){const pd=dt*1.35,n=Math.ceil(pd/(1/240));for(let i=0;i<n&&state==='rolling';i++)step(pd/n)} // brisker, less floaty roll (same paths)
+ else if(state==='dropping'){anim.t+=dt;if(anim.t>.32){SFX.rattle();state='returning';anim={type:'trough',t:0,v:anim.h.v,y:anim.h.y}}}
+ else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.8:.45;if(anim.t>=dur){
    ball={x:START.x,y:START.y,vx:0,vy:0,on:false};
    if(anim.type==='trough'){gallop(anim.v)}else{nextTurn()} }}
  for(const h of G?G.horses:[]){const g=h.ga;if(!g)continue;g.t+=dt;const per=.42;const k=Math.min(g.n,Math.floor(g.t/per));
@@ -319,10 +319,10 @@ function drawAlley(){
  for(const e of effects)if(e.type==='ring'){const c=P(e.x,e.y),r=(8+e.t*30)*S*c.k;cx.strokeStyle=e.c;cx.globalAlpha=Math.max(0,1-e.t);cx.lineWidth=3;cx.beginPath();cx.ellipse(c.x,c.y,r,r*(.42+.3*c.t),0,0,7);cx.stroke();cx.globalAlpha=1}
  // ball
  const bc=BALLC[G.turn];let bx=ball.x,by=ball.y,bs=1,sink=0;
- if(state==='dropping'){const k=Math.min(1,anim.t/.35);bx=anim.x+(anim.h.x-anim.x)*k;by=anim.y+(anim.h.y-anim.y)*k;sink=k}
+ if(state==='dropping'){let k=Math.min(1,anim.t/.16);k=k*k;bx=anim.x+(anim.h.x-anim.x)*k;by=anim.y+(anim.h.y-anim.y)*k;sink=k}
  else if(state==='returning'){
-  if(anim.type==='trough'){const k=anim.t/1.1;if(k<.7){bx=110;by=anim.y+(AL-6-anim.y)*(k/.7)}else{const q=(k-.7)/.3;bx=110+(START.x-110)*q;by=AL-6+(START.y-(AL-6))*q}}
-  else{const k=anim.t/.6;bx=anim.x+(START.x-anim.x)*k;by=anim.y+(START.y-anim.y)*k}}
+  if(anim.type==='trough'){const k=anim.t/.8;if(k<.7){bx=110;by=anim.y+(AL-6-anim.y)*(k/.7)}else{const q=(k-.7)/.3;bx=110+(START.x-110)*q;by=AL-6+(START.y-(AL-6))*q}}
+  else{const k=anim.t/.45;bx=anim.x+(START.x-anim.x)*k;by=anim.y+(START.y-anim.y)*k}}
  else if(state==='galloping'||state==='finish'){bx=START.x;by=START.y}
  drawBall(bx,by,bs,bc,sink);
  if(state==='aim'&&!drag){const pulse=(Math.sin(time*5)+1)/2;const a=P(START.x,START.y-14),b=P(START.x,START.y-70);cx.strokeStyle=`rgba(255,255,255,${.4+pulse*.4})`;cx.lineWidth=3;cx.setLineDash([6,8]);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();cx.setLineDash([]);
@@ -358,7 +358,7 @@ function frame(now){const dt=Math.min(.05,(now-lastT)/1000)*SPEED;lastT=now;
  if(G&&state!=='menu')update(dt);else time+=dt;
  cx.clearRect(0,0,W(),H());
  const bg=cx.createLinearGradient(0,0,0,H());bg.addColorStop(0,'#bfe9ff');bg.addColorStop(.35,'#9be08a');bg.addColorStop(1,'#6fc25d');cx.fillStyle=bg;cx.fillRect(0,0,W(),H());
- if(G){drawTrack();drawAlley();drawMsg();if(state==='finish')drawFinish()}
+ if(G){drawTrack();const sk=shake>0?shake*14:0;cx.save();cx.translate(0,sk*Math.sin(time*90)*.5+sk*.3);drawAlley();cx.restore();drawMsg();if(state==='finish')drawFinish()}
  requestAnimationFrame(frame)}
 // ---------- input ----------
 cv.addEventListener('pointerdown',e=>{unlock();if(state!=='aim')return;const p=toWorld(e.offsetX,e.offsetY);
@@ -366,7 +366,7 @@ cv.addEventListener('pointerdown',e=>{unlock();if(state!=='aim')return;const p=t
  drag={id:e.pointerId,pts:[{x:p.x,y:p.y,px:e.offsetX,py:e.offsetY,t:performance.now()}]};ball.x=Math.max(BR,Math.min(AW-BR,p.x));try{cv.setPointerCapture(e.pointerId)}catch(_){}});
 cv.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const p=toWorld(e.offsetX,e.offsetY);drag.pts.push({x:p.x,y:p.y,px:e.offsetX,py:e.offsetY,t:performance.now()});if(drag.pts.length>30)drag.pts.shift();
  if(p.y>200){ball.x=Math.max(BR,Math.min(AW-BR,p.x));ball.y=Math.max(205,Math.min(START.y+8,p.y))}});
-function release(e){if(!drag||e.pointerId!==drag.id)return;const now=performance.now();const all=drag.pts,last=all[all.length-1].t;let pts=all.filter(q=>last-q.t<110);if(pts.length<2)pts=all.slice(-2);drag=null;if(now-last>350)pts=[];
+function release(e){if(!drag||e.pointerId!==drag.id)return;const now=performance.now();const all=drag.pts,last=all[all.length-1].t;let pts=all.filter(q=>last-q.t<80);if(pts.length<2)pts=all.slice(-2);drag=null;if(now-last>350)pts=[];
  if(pts.length<2||state!=='aim'){ball.x=START.x;ball.y=START.y;return}
  const a=pts[0],b=pts[pts.length-1],dt=Math.max(.016,(b.t-a.t)/1000);let vx=(b.x-a.x)/dt,vy=(b.y-a.y)/dt;
  if(vy>-60){ball.x=START.x;ball.y=START.y;return} // too gentle or wrong way: just put the ball back
