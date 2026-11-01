@@ -208,7 +208,7 @@ function rg(x,y,r,c0,c1,c2){const g=cx.createRadialGradient(x-r*.35,y-r*.45,r*.0
 function blob(x,y,rx,ry,rot,fill){cx.fillStyle=fill;cx.beginPath();cx.ellipse(x,y,rx,ry,rot||0,0,7);cx.fill()}
 // chunky shaded cartoon horse with a friendly jockey; origin = ground under the belly
 let HATNONE=false;
-function drawHat(h){if(!h)return;cx.save();cx.translate(25,-36);cx.rotate(.25);
+function drawHat(h,ax=25,ay=-36,ro=.25){if(!h)return;cx.save();cx.translate(ax,ay);cx.rotate(ro);
  if(h===1){cx.fillStyle='#4fc3f7';cx.beginPath();cx.moveTo(-6,0);cx.lineTo(6,0);cx.lineTo(0,-16);cx.closePath();cx.fill();cx.fillStyle='#ffeb3b';for(const [x,y] of [[-2,-4],[2,-8],[-1,-11]]){cx.beginPath();cx.arc(x,y,1.3,0,7);cx.fill()}cx.fillStyle='#ff9800';cx.beginPath();cx.arc(0,-17,2.6,0,7);cx.fill()}
  else if(h===2){cx.fillStyle='#a0682f';cx.beginPath();cx.ellipse(0,0,13,3.5,0,0,7);cx.fill();cx.fillStyle='#8a5526';cx.beginPath();cx.moveTo(-6,0);cx.quadraticCurveTo(-7,-11,0,-10);cx.quadraticCurveTo(7,-11,6,0);cx.closePath();cx.fill();cx.fillStyle='#e53935';cx.fillRect(-6,-3,12,2)}
  else if(h===3){drawCrown(0,0,1)}
@@ -283,7 +283,8 @@ function drawHorse(x,y,s,i,phase,glow){
  cx.fillStyle=c.d;cx.beginPath();cx.ellipse(10,-27,5,1.6,0,0,7);cx.fill();
  cx.fillStyle='#fff';cx.fillRect(4,-34.4,2,7);
  cx.restore();
- if(i===0&&!HATNONE){if(capy)cx.translate(-3,16);else if(dino)cx.translate(3,-6);drawHat(HAT())}
+ if(i===0&&!HATNONE){const hh=HAT();if(capy)drawHat(hh,28,-26.5,.04);else if(dino)drawHat(hh,29,-39,.15);else drawHat(hh,25.5,-32.3,.3);
+  if(uni&&hh){cx.fillStyle=rg(31,-38,8,'#fff8c4','#ffd54f','#d4a017');cx.beginPath();cx.moveTo(28.5,-33);cx.lineTo(36,-49);cx.lineTo(32.5,-31);cx.closePath();cx.fill()}}
  cx.restore();
 }
 // perspective race track: far lane at the top, near lane at the bottom, receding like the alley
@@ -506,5 +507,6 @@ layout();buildMenu();
 G=makeRace(save.level,1);state='menu';
 requestAnimationFrame(frame);
 // test hooks (harmless in play)
+window.__sheet=(c,ponies,hats,ph)=>{const g=c.getContext('2d');const real=cx,sh=save.hat,sw=save.wins;cx=g;save.wins=99;try{g.fillStyle='#e8f0f8';g.fillRect(0,0,c.width,c.height);ponies.forEach((p,r)=>hats.forEach((h,k)=>{PORTRAIT=p;save.hat=h;drawHorse(110+k*260,170+r*250,3.2,0,ph||0,false)}))}finally{cx=real;PORTRAIT=null;save.hat=sh;save.wins=sw}};
 window.__gr={drawHorse:(...a)=>drawHorse(...a),get state(){return state},get G(){return G},get ball(){return ball},launch:(vx,vy)=>{if(state==='aim')launch(vx,vy)},begin,home,save:()=>save,win:()=>{G.finishOrder=[0];finishRace()},toScreen:(x,y)=>{const q=P(x,y);return{x:q.x,y:q.y}}};
 })();
