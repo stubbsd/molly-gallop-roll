@@ -16,7 +16,7 @@ function rng(seed){let s=seed>>>0||1;return()=>{s^=s<<13;s>>>=0;s^=s>>17;s^=s<<5
 // ---------- audio ----------
 let AC=null,noiseBuf=null,rollNode=null,rollGain=null;
 function audio(){if(AC)return AC;try{AC=new (window.AudioContext||window.webkitAudioContext)();const len=AC.sampleRate;noiseBuf=AC.createBuffer(1,len,AC.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1}catch(e){AC=null}return AC}
-function unlock(){const a=audio();if(a&&a.state==='suspended')a.resume()}
+function unlock(){const a=audio();if(a&&a.state==='suspended')a.resume();if(a)musicStart()}
 function tone(f,t0,dur,type='sine',vol=.2,f2){if(save.muted||!AC)return;const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+dur);g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol,t0+.01);g.gain.exponentialRampToValueAtTime(.001,t0+dur);o.connect(g).connect(AC.destination);o.start(t0);o.stop(t0+dur+.02)}
 function noise(t0,dur,vol,freq,q=1,type='bandpass'){if(save.muted||!AC)return;const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type=type;f.frequency.value=freq;f.Q.value=q;const g=AC.createGain();g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);s.connect(f).connect(g).connect(AC.destination);s.start(t0,Math.random()*.5);s.stop(t0+dur)}
 const SFX={
@@ -31,6 +31,29 @@ const SFX={
  cheer(){if(!AC)return;const t=AC.currentTime;noise(t,1.6,.22,1400,.4);[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.14,.5,'triangle',.18));},
  miss(){if(!AC)return;const t=AC.currentTime;tone(400,t,.3,'sine',.12,250)}
 };
+// ---------- background music: an original, bouncy brass-band loop synthesised live ----------
+const MUS={on:false,next:0,step:0,timer:null,bus:null,duck:1};
+// melody in semitones above C5 (null = rest), 8 steps per bar; written for this game
+const MEL=[4,7,12,7, 9,7,4,null, 5,9,14,9, 7,null,null,null, 4,7,12,16, 14,12,9,7, 5,4,2,4, 0,null,null,null,
+           7,9,7,4, 5,4,2,null, 4,5,4,0, 2,null,7,null, 12,11,9,7, 9,12,14,16, 14,7,11,14, 12,null,null,null];
+const CH=[[0,4,7],[5,9,0],[0,4,7],[7,11,2],[0,4,7],[5,9,0],[5,9,0],[7,11,2],[7,11,2],[0,4,7],[0,4,7],[7,11,2],[5,9,0],[5,9,0],[7,11,2],[0,4,7]];
+const hz=n=>523.25*Math.pow(2,n/12);
+function musicNote(f,t,dur,vol,type,cut){const o=AC.createOscillator(),o2=AC.createOscillator(),fl=AC.createBiquadFilter(),g=AC.createGain();
+ o.type=o2.type=type;o.frequency.value=f;o2.frequency.value=f*1.004;fl.type='lowpass';fl.frequency.setValueAtTime(cut*.5,t);fl.frequency.linearRampToValueAtTime(cut,t+.04);
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.025);g.gain.setTargetAtTime(vol*.6,t+.05,.08);g.gain.setTargetAtTime(0,t+dur*.85,.04);
+ o.connect(fl);o2.connect(fl);fl.connect(g);g.connect(MUS.bus);o.start(t);o2.start(t);o.stop(t+dur+.3);o2.stop(t+dur+.3)}
+function musicTick(){if(!AC||!MUS.on)return;const spb=60/152/2;   // 152 bpm, eighth notes
+ while(MUS.next<AC.currentTime+.25){const t=MUS.next,i=MUS.step%MEL.length,bar=Math.floor(i/8)%CH.length,b8=i%8,ch=CH[bar];
+  const m=MEL[i];if(m!=null)musicNote(hz(m),t,spb*1.6,.9,'sawtooth',2600);             // brassy lead
+  if(b8%4===0)musicNote(hz(ch[0]-24),t,spb*1.5,.9,'triangle',900);                   // oom
+  if(b8%4===2)ch.forEach(n=>musicNote(hz(n-12),t,spb*.8,.32,'square',1500));         // pah
+  if(b8%2===1){const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type='highpass';f.frequency.value=7000;const g=AC.createGain();g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.05);s.connect(f);f.connect(g);g.connect(MUS.bus);s.start(t,Math.random());s.stop(t+.06)}
+  MUS.next+=spb;MUS.step++}
+ // keep the music well under the sound effects; duck further while the ball rolls
+ MUS.bus.gain.setTargetAtTime(save.muted?0:(rollNode?.022:.045),AC.currentTime,.12)}
+function musicStart(){if(!AC||MUS.on||save.music===false||save.muted)return;if(!MUS.bus){MUS.bus=AC.createGain();MUS.bus.gain.value=0;MUS.bus.connect(AC.destination)}
+ MUS.on=true;MUS.next=AC.currentTime+.1;MUS.timer=setInterval(musicTick,60);musicTick()}
+function musicStop(){MUS.on=false;clearInterval(MUS.timer);if(MUS.bus&&AC)MUS.bus.gain.setTargetAtTime(0,AC.currentTime,.05)}
 // ---------- race generation ----------
 let G=null;
 function makeRace(level,players){
@@ -71,7 +94,7 @@ function toWorld(px,py){let k=K0+(py-L.ay)/L.ah*(1-K0);k=Math.max(.2,k);const t=
 function cur(){return G.horses[G.turn]}
 function startTurn(){
  const h=cur();ball={x:START.x,y:START.y,vx:0,vy:0,on:false};
- if(h.human){state='aim';showMsg(G.humans===1?'YOUR TURN!':COLORS[h.i].n.toUpperCase()+"'S TURN!",COLORS[h.i].c,1.4)}
+ if(h.human){state='aim';if(SOLO()){if(!G.started){G.started=1;showMsg('GO!',COLORS[0].c,1)}}else showMsg(COLORS[h.i].n.toUpperCase()+"'S TURN!",COLORS[h.i].c,1.4)}
  else{state='cpuwait';showMsg('',COLORS[h.i].c,0);setTimeout(()=>{if(state==='cpuwait')cpuRoll()},900/SPEED)}
 }
 const SOLO=()=>G&&G.humans===1;
@@ -89,7 +112,8 @@ function launch(vx,vy){
 function cpuQuickRoll(h){const L=Math.min(G.level,8),r=Math.random();
  const w=[.44-L*.016,.3,.19+L*.004,.11+L*.004,.06+L*.004];let a=0,v=0;const tot=w.reduce((x,y)=>x+y);for(let k=0;k<5;k++){a+=w[k]/tot;if(r<a){v=k;break}}
  if(v>0&&!h.ga&&h.pos<TRACK)startGallop(h,v)}
-function startGallop(h,n){n=Math.min(n,TRACK-h.pos);if(n<=0)return;h.ga={from:h.pos,n,t:0,k:0};SFX.ding(n);effects.push({type:'plus',n,i:h.i,t:0})}
+function startGallop(h,n){if(h.ga){const add=Math.min(n,TRACK-(h.ga.from+h.ga.n));if(add>0){h.ga.n+=add;SFX.ding(add);effects.push({type:'plus',n:add,i:h.i,t:0})}return}
+ n=Math.min(n,TRACK-h.pos);if(n<=0)return;h.ga={from:h.pos,n,t:0,k:0};SFX.ding(n);effects.push({type:'plus',n,i:h.i,t:0})}
 function cpuRoll(){
  const sk=G.cpuSkill,r=Math.random;
  // pick a target: smarter CPUs go for valuable holes
@@ -146,7 +170,8 @@ function update(dt){
  for(const e of effects)e.t+=dt;effects=effects.filter(e=>e.t<2);
  if(msg){msg.t+=dt;if(msg.t>msg.d)msg=null}
 }
-function gallop(n){const h=cur();state='galloping';startGallop(h,n);if(!h.ga)nextTurn()}
+function gallop(n){const h=cur();if(SOLO()){startGallop(h,n);return nextTurn()} // solo: keep playing while your horse runs
+ state='galloping';startGallop(h,n);if(!h.ga)nextTurn()}
 function showMsg(text,c,d){msg=text?{text,c,d,t:0}:null}
 // ---------- finish ----------
 function finishRace(){
@@ -379,7 +404,10 @@ function begin(){unlock();$('menu').classList.add('hide');$('menu').classList.re
  G=makeRace(save.level,save.players);effects=[];startTurn()}
 function home(){SFX.rollStop();state='menu';G=null;$('end').classList.add('hide');$('menu').classList.remove('hide');$('menu').classList.add('on');$('home').classList.add('hide');buildMenu()}
 $('play').onclick=begin;$('next').onclick=begin;$('again').onclick=home;$('home').onclick=home;
-$('mute').onclick=()=>{save.muted=!save.muted;persist();$('mute').textContent=save.muted?'🔇':'🔊';if(save.muted)SFX.rollStop()};$('mute').textContent=save.muted?'🔇':'🔊';
+$('mute').onclick=()=>{save.muted=!save.muted;persist();$('mute').textContent=save.muted?'🔇':'🔊';if(save.muted){SFX.rollStop();musicStop()}else{unlock();musicStart()}};
+$('music').onclick=()=>{unlock();save.music=save.music===false;persist();musicIcon();if(save.music)musicStart();else musicStop()};
+function musicIcon(){$('music').classList.toggle('off',save.music===false)}musicIcon();
+window.__music=MUS;$('mute').textContent=save.muted?'🔇':'🔊';
 document.addEventListener('visibilitychange',()=>{if(document.hidden)SFX.rollStop()});
 window.addEventListener('resize',layout);window.addEventListener('orientationchange',()=>setTimeout(layout,200));
 document.addEventListener('gesturestart',e=>e.preventDefault());
