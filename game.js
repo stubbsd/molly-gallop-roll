@@ -47,9 +47,9 @@ function unlock(){const a=audio();if(a&&a.state==='suspended')a.resume();if(a)mu
 function tone(f,t0,dur,type='sine',vol=.2,f2){if(save.muted||!AC)return;const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+dur);g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol,t0+.01);g.gain.exponentialRampToValueAtTime(.001,t0+dur);o.connect(g).connect(AC.destination);o.start(t0);o.stop(t0+dur+.02)}
 function noise(t0,dur,vol,freq,q=1,type='bandpass'){if(save.muted||!AC)return;const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type=type;f.frequency.value=freq;f.Q.value=q;const g=AC.createGain();g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);s.connect(f).connect(g).connect(AC.destination);s.start(t0,Math.random()*.5);s.stop(t0+dur)}
 const SFX={
- rollStart(){if(!AC||save.muted||rollNode)return;rollNode=AC.createBufferSource();rollNode.buffer=noiseBuf;rollNode.loop=true;const f=AC.createBiquadFilter();f.type='bandpass';f.frequency.value=380;f.Q.value=.8;rollGain=AC.createGain();rollGain.gain.value=0;rollNode.connect(f).connect(rollGain).connect(AC.destination);rollNode.start()},
- roll(sp){if(rollGain)rollGain.gain.setTargetAtTime(Math.min(.25,sp/900)*(.7+.3*Math.random()),AC.currentTime,.03)},
- rollStop(){if(rollNode){try{rollGain.gain.setTargetAtTime(0,AC.currentTime,.03);rollNode.stop(AC.currentTime+.15)}catch(e){}rollNode=null;rollGain=null}},
+ rollStart(){if(!AC||save.muted||rollNode)return;rollNode=AC.createBufferSource();rollNode.buffer=noiseBuf;rollNode.loop=true;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=240;f.Q.value=.3;const f2=AC.createBiquadFilter();f2.type='lowpass';f2.frequency.value=320;f2.Q.value=.2;rollGain=AC.createGain();rollGain.gain.value=0;rollNode.connect(f).connect(f2).connect(rollGain).connect(AC.destination);rollNode.start()},
+ roll(sp){if(rollGain)rollGain.gain.setTargetAtTime(Math.min(.14,sp/1600),AC.currentTime,.12)},
+ rollStop(){if(rollNode){try{rollGain.gain.setTargetAtTime(0,AC.currentTime,.08);rollNode.stop(AC.currentTime+.4)}catch(e){}rollNode=null;rollGain=null}},
  bump(){if(!AC)return;const t=AC.currentTime;tone(220,t,.08,'triangle',.15,140)},
  drop(){if(!AC)return;const t=AC.currentTime;tone(140,t,.12,'sine',.45,55);tone(300,t,.2,'sine',.25,90);for(let i=0;i<5;i++)noise(t+.08+i*.07,.06,.25,1800+Math.random()*900,4)},
  rattle(){if(!AC)return;const t=AC.currentTime;for(let i=0;i<7;i++)noise(t+i*.09,.05,.12,900+Math.random()*600,5)},
@@ -177,14 +177,14 @@ function sink(h){
  const hv=cur();anim={type:'drop',h,t:0,x:ball.x,y:ball.y};effects.push({type:'sparkle',x:h.x,y:h.y,t:0,seed:Math.random()*6});
  effects.push({type:'ring',x:h.x,y:h.y,t:0,c:['#fbc02d','#e53935','#43a047','#1e88e5'][(h.v-1)%4]});shake=.18;
 }
-function missed(){SFX.rollStop();SFX.miss();ball.on=false;state='returning';anim={type:'back',t:0,x:ball.x,y:ball.y,v:0}}
+function missed(){SFX.rollStop();SFX.miss();ball.on=false;state='returning';SFX.rollStart();SFX.roll(500);anim={type:'back',t:0,x:ball.x,y:ball.y,v:0}}
 // ---------- update ----------
 function update(dt){
  time+=dt;
  if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=Math.max(2.6,3.6-(Math.min(G.level,10)-1)*.11)+Math.random()*1.2}}if(shake>0)shake=Math.max(0,shake-dt);
  if(state==='rolling'){const pd=dt*1.15,n=Math.ceil(pd/(1/240));for(let i=0;i<n&&state==='rolling';i++)step(pd/n)} // brisker, less floaty roll (same paths)
- else if(state==='dropping'){anim.t+=dt;if(anim.t>.32){SFX.rattle();state='returning';anim={type:'trough',t:0,v:anim.h.v*(anim.h.bonus?2:1),bonus:!!anim.h.bonus,y:anim.h.y}}}
- else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.65:.4;if(anim.t>=dur){
+ else if(state==='dropping'){anim.t+=dt;if(anim.t>.32){state='returning';SFX.rollStart();SFX.roll(500);anim={type:'trough',t:0,v:anim.h.v*(anim.h.bonus?2:1),bonus:!!anim.h.bonus,y:anim.h.y}}}
+ else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.65:.4;if(anim.t>=dur){SFX.rollStop();
    ball={x:START.x,y:START.y,vx:0,vy:0,on:false};
    if(anim.type==='trough'){if(anim.bonus){SFX.ding(4);effects.push({type:'x2',t:0})}gallop(anim.v)}else{nextTurn()} }}
  for(const h of G?G.horses:[]){const g=h.ga;if(!g)continue;g.t+=dt;const per=.52;const k=Math.min(g.n,Math.floor(g.t/per));
