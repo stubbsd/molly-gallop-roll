@@ -39,7 +39,7 @@ const SFX={
  cheer(){if(!AC)return;const t=AC.currentTime;noise(t,1.6,.22,1400,.4);[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.14,.5,'triangle',.18));},
  miss(){if(!AC)return;const t=AC.currentTime;tone(400,t,.3,'sine',.12,250)}
 };
-// ---------- background music: an original, bouncy brass-band loop synthesised live ----------
+// ---------- background music: an original, gentle music-box loop synthesised live ----------
 const MUS={on:false,next:0,step:0,timer:null,bus:null,duck:1};
 // melody in semitones above C5 (null = rest), 8 steps per bar; written for this game
 const MEL=[4,7,12,7, 9,7,4,null, 5,9,14,9, 7,null,null,null, 4,7,12,16, 14,12,9,7, 5,4,2,4, 0,null,null,null,
@@ -50,15 +50,14 @@ function musicNote(f,t,dur,vol,type,cut){const o=AC.createOscillator(),o2=AC.cre
  o.type=o2.type=type;o.frequency.value=f;o2.frequency.value=f*1.004;fl.type='lowpass';fl.frequency.setValueAtTime(cut*.5,t);fl.frequency.linearRampToValueAtTime(cut,t+.04);
  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.025);g.gain.setTargetAtTime(vol*.6,t+.05,.08);g.gain.setTargetAtTime(0,t+dur*.85,.04);
  o.connect(fl);o2.connect(fl);fl.connect(g);g.connect(MUS.bus);o.start(t);o2.start(t);o.stop(t+dur+.3);o2.stop(t+dur+.3)}
-function musicTick(){if(!AC||!MUS.on)return;const spb=60/152/2;   // 152 bpm, eighth notes
- while(MUS.next<AC.currentTime+.25){const t=MUS.next,i=MUS.step%MEL.length,bar=Math.floor(i/8)%CH.length,b8=i%8,ch=CH[bar];
-  const m=MEL[i];if(m!=null)musicNote(hz(m),t,spb*1.6,.9,'sawtooth',2600);             // brassy lead
-  if(b8%4===0)musicNote(hz(ch[0]-24),t,spb*1.5,.9,'triangle',900);                   // oom
-  if(b8%4===2)ch.forEach(n=>musicNote(hz(n-12),t,spb*.8,.32,'square',1500));         // pah
-  if(b8%2===1){const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type='highpass';f.frequency.value=7000;const g=AC.createGain();g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.05);s.connect(f);f.connect(g);g.connect(MUS.bus);s.start(t,Math.random());s.stop(t+.06)}
+function musicTick(){if(!AC||!MUS.on)return;const spb=60/104/2;   // gentle 104 bpm music box
+ while(MUS.next<AC.currentTime+.3){const t=MUS.next,i=MUS.step%MEL.length,bar=Math.floor(i/8)%CH.length,b8=i%8,ch=CH[bar];
+  const m=MEL[i];if(m!=null)musicNote(hz(m-12),t,spb*2.2,.55,'sine',1800);               // soft music-box lead
+  if(b8===0)musicNote(hz(ch[0]-24),t,spb*3.5,.5,'sine',600);                             // round bass
+  if(b8===2||b8===6)ch.forEach(n=>musicNote(hz(n-12),t,spb*1.6,.12,'triangle',900));      // light chord
   MUS.next+=spb;MUS.step++}
  // keep the music well under the sound effects; duck further while the ball rolls
- MUS.bus.gain.setTargetAtTime(save.muted?0:(rollNode?.022:.045),AC.currentTime,.12)}
+ MUS.bus.gain.setTargetAtTime(save.muted?0:(rollNode?.012:.026),AC.currentTime,.12)}
 function musicStart(){if(!AC||MUS.on||save.music===false||save.muted)return;if(!MUS.bus){MUS.bus=AC.createGain();MUS.bus.gain.value=0;MUS.bus.connect(AC.destination)}
  MUS.on=true;MUS.next=AC.currentTime+.1;MUS.timer=setInterval(musicTick,60);musicTick()}
 function musicStop(){MUS.on=false;clearInterval(MUS.timer);if(MUS.bus&&AC)MUS.bus.gain.setTargetAtTime(0,AC.currentTime,.05)}
@@ -75,7 +74,7 @@ function makeRace(level,players){
  const holes=[];
  for(let row=1;row<=4;row++){const y=top+(4-row)*RG;for(let k=0;k<row;k++){holes.push({x:50+shift+(k-(row-1)/2)*D,y,v:row,r:HR*(row>=3?Math.max(.8,1-(L-1)*(row===4?.025:.018)):1)})}}
  const pegs=[];{const cand=holes.filter(h=>h.v<=2);cand[Math.floor(r()*cand.length)].bonus=true}
- const themes=[['#c98d4f','#e0a96d'],['#b77b45','#d89c62'],['#cf9a5d','#ecc08a'],['#a8703f','#d0955a']];
+ const themes=[['#c98d4f','#e0a96d'],['#5fb8a0','#9fe0c8'],['#5a9ad8','#9cccf2'],['#9a86d0','#c9b8f0'],['#e0954a','#f5c27e'],['#3f5a9e','#6f8fd0']];
  const humans=Math.max(1,Math.min(4,players));
  return{level,g,gx,holes,pegs,theme:themes[(level-1)%themes.length],cpuSkill:Math.min(.75,.3+L*.045),
   horses:COLORS.map((c,i)=>({i,pos:0,shown:0,human:i<humans,finished:0,ga:null})),turn:0,humans,finishOrder:[]};
@@ -356,7 +355,7 @@ function alleyStatic(){
   cx.strokeStyle='rgba(0,0,0,.55)';cx.lineWidth=Math.max(2,ry*.5);cx.beginPath();cx.ellipse(c.x,c.y+ry*.12,rx,ry,0,Math.PI*1.05,Math.PI*1.95);cx.stroke();cx.restore();
   cx.strokeStyle='rgba(255,236,200,.7)';cx.lineWidth=Math.max(1.5,ry*.16);cx.beginPath();cx.ellipse(c.x,c.y+ry*.04,rx*1.02,ry*1.04,0,Math.PI*.12,Math.PI*.88);cx.stroke()
   cx.strokeStyle=['#fbc02d','#e53935','#43a047','#1e88e5'][(h.v-1)%4];cx.lineWidth=Math.max(2,rx*.16);cx.beginPath();cx.ellipse(c.x,c.y,rx*1.1,ry*1.1,0,0,7);cx.stroke();
-  if(h.bonus){const R=['#e53935','#fb8c00','#fbc02d','#43a047','#1e88e5','#8e24aa'];cx.lineWidth=Math.max(1.5,rx*.09);R.forEach((col,j)=>{cx.strokeStyle=col;cx.beginPath();cx.ellipse(c.x,c.y,rx*(1.25+j*.07),ry*(1.25+j*.07),0,Math.PI,2*Math.PI);cx.stroke()})}}
+  }
 }
 function drawStar(x,y,r,t){cx.save();cx.translate(x,y);cx.rotate(Math.sin(t*2)*.15);const g=cx.createRadialGradient(0,-r*.3,0,0,0,r);g.addColorStop(0,'#fffde7');g.addColorStop(.5,'#ffd54f');g.addColorStop(1,'#f9a825');cx.fillStyle=g;cx.beginPath();for(let p=0;p<10;p++){const rr=p%2?r*.45:r,a=-Math.PI/2+p*Math.PI/5;cx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr)}cx.closePath();cx.fill();cx.strokeStyle='#e08e00';cx.lineWidth=Math.max(1,r*.08);cx.stroke();cx.restore()}
 function drawAlley(){
@@ -365,7 +364,7 @@ function drawAlley(){
   cx.save();cx.globalCompositeOperation='lighter';const gl=cx.createRadialGradient(c.x,c.y,0,c.x,c.y,26*u*(.6+k));gl.addColorStop(0,`rgba(255,250,200,${.7*a})`);gl.addColorStop(1,'rgba(255,250,200,0)');cx.fillStyle=gl;cx.beginPath();cx.arc(c.x,c.y,26*u*(.6+k),0,7);cx.fill();cx.restore();
   for(let n=0;n<20;n++){const ang=e.seed+n*Math.PI*2/20,d=(8+46*Math.sqrt(k))*u*(.7+.3*(n%3)),px=c.x+Math.cos(ang)*d,py=c.y+Math.sin(ang)*d*.6-30*u*k*(n%2),sz=(6-3.5*k)*u*(n%2?1:.75)*(.8+.4*Math.sin(time*20+n));
    cx.globalAlpha=a;cx.fillStyle=['#ffeb3b','#4fc3f7','#aed581','#ffb74d','#ffffff','#fff59d'][n%6];cx.beginPath();for(let p=0;p<8;p++){const rr=p%2?sz*.38:sz,aa=p*Math.PI/4+time*3;cx.lineTo(px+Math.cos(aa)*rr,py+Math.sin(aa)*rr)}cx.closePath();cx.fill()}cx.globalAlpha=1}
- for(const h of G.holes)if(h.bonus){const c=P(h.x,h.y),u=S*c.k,y=c.y-h.r*u*.55-12*u+Math.sin(time*3)*2*u;drawStar(c.x,y,8*u,time);cx.fillStyle='#fff';cx.strokeStyle='#7a4a00';cx.lineWidth=3;cx.font=`900 ${9*u}px system-ui,sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.strokeText('×2',c.x,y+.5*u);cx.fillText('×2',c.x,y+.5*u)}
+ for(const h of G.holes)if(h.bonus){const c=P(h.x,h.y),u=S*c.k;cx.save();for(let k=0;k<8;k++){const an=k*Math.PI/4+time*.6,ph=time*2.2+k*1.3,al=.35+.65*Math.max(0,Math.sin(ph));cx.globalAlpha=al;drawStar(c.x+Math.cos(an)*h.r*u*1.55,c.y+Math.sin(an)*h.r*u*.75*1.55,(2.2+1.3*Math.sin(ph))*u,ph)}cx.restore();const y=c.y-h.r*u*.55-12*u+Math.sin(time*3)*2*u;drawStar(c.x,y,8*u,time);cx.fillStyle='#fff';cx.strokeStyle='#7a4a00';cx.lineWidth=3;cx.font=`900 ${9*u}px system-ui,sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.strokeText('×2',c.x,y+.5*u);cx.fillText('×2',c.x,y+.5*u)}
  for(const e of effects)if(e.type==='ring'){const c=P(e.x,e.y),r=(8+e.t*30)*S*c.k;cx.strokeStyle=e.c;cx.globalAlpha=Math.max(0,1-e.t);cx.lineWidth=3;cx.beginPath();cx.ellipse(c.x,c.y,r,r*(.42+.3*c.t),0,0,7);cx.stroke();cx.globalAlpha=1}
  // ball
  const bc=BALLC[G.turn];let bx=ball.x,by=ball.y,bs=1,sink=0;
