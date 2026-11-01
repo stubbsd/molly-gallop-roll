@@ -83,14 +83,12 @@ function nextTurn(){
 function launch(vx,vy){
  const sp=Math.hypot(vx,vy),max=360;if(sp>max){vx*=max/sp;vy*=max/sp}
  ball.vx=vx;ball.vy=vy;ball.on=true;state='rolling';ball.t=0;SFX.rollStart();
- // solo: the three CPU horses roll at the same time as the player, each from its own alley
- if(SOLO()&&cur().human){const race=G;[1,2,3].forEach((i,k)=>setTimeout(()=>{if(G!==race||state==='finish'||G.finishOrder.length)return;cpuQuickRoll(G.horses[i])},(350+k*450+Math.random()*250)/SPEED))}
+ // solo: CPU horses decide their own results off-screen on their own clocks (see update)
 }
 // simple, fair CPU roll for solo races: mostly small gallops, sometimes a miss, rarely a big one
 function cpuQuickRoll(h){const L=Math.min(G.level,8),r=Math.random();
  const w=[.44-L*.016,.3,.19+L*.004,.11+L*.004,.06+L*.004];let a=0,v=0;const tot=w.reduce((x,y)=>x+y);for(let k=0;k<5;k++){a+=w[k]/tot;if(r<a){v=k;break}}
- effects.push({type:'cpuball',i:h.i,t:0,v});
- if(v>0)setTimeout(()=>{if(state!=='finish'&&h.pos<TRACK)startGallop(h,v)},500/SPEED)}
+ if(v>0&&!h.ga&&h.pos<TRACK)startGallop(h,v)}
 function startGallop(h,n){n=Math.min(n,TRACK-h.pos);if(n<=0)return;h.ga={from:h.pos,n,t:0,k:0};SFX.ding(n);effects.push({type:'plus',n,i:h.i,t:0})}
 function cpuRoll(){
  const sk=G.cpuSkill,r=Math.random;
@@ -132,10 +130,11 @@ function sink(h){
 function missed(){SFX.rollStop();SFX.miss();ball.on=false;state='returning';anim={type:'back',t:0,x:ball.x,y:ball.y,v:0}}
 // ---------- update ----------
 function update(dt){
- time+=dt;if(shake>0)shake=Math.max(0,shake-dt);
+ time+=dt;
+ if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=2.2+h.i*.9+Math.random();h.next-=dt;if(h.next<=0&&!h.ga){cpuQuickRoll(h);h.next=3.4+Math.random()*1.8}}if(shake>0)shake=Math.max(0,shake-dt);
  if(state==='rolling'){const pd=dt*1.35,n=Math.ceil(pd/(1/240));for(let i=0;i<n&&state==='rolling';i++)step(pd/n)} // brisker, less floaty roll (same paths)
  else if(state==='dropping'){anim.t+=dt;if(anim.t>.32){SFX.rattle();state='returning';anim={type:'trough',t:0,v:anim.h.v,y:anim.h.y}}}
- else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.8:.45;if(anim.t>=dur){
+ else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.5:.3;if(anim.t>=dur){
    ball={x:START.x,y:START.y,vx:0,vy:0,on:false};
    if(anim.type==='trough'){gallop(anim.v)}else{nextTurn()} }}
  for(const h of G?G.horses:[]){const g=h.ga;if(!g)continue;g.t+=dt;const per=.42;const k=Math.min(g.n,Math.floor(g.t/per));
@@ -321,8 +320,8 @@ function drawAlley(){
  const bc=BALLC[G.turn];let bx=ball.x,by=ball.y,bs=1,sink=0;
  if(state==='dropping'){let k=Math.min(1,anim.t/.16);k=k*k;bx=anim.x+(anim.h.x-anim.x)*k;by=anim.y+(anim.h.y-anim.y)*k;sink=k}
  else if(state==='returning'){
-  if(anim.type==='trough'){const k=anim.t/.8;if(k<.7){bx=110;by=anim.y+(AL-6-anim.y)*(k/.7)}else{const q=(k-.7)/.3;bx=110+(START.x-110)*q;by=AL-6+(START.y-(AL-6))*q}}
-  else{const k=anim.t/.45;bx=anim.x+(START.x-anim.x)*k;by=anim.y+(START.y-anim.y)*k}}
+  if(anim.type==='trough'){const k=anim.t/.5;if(k<.7){bx=110;by=anim.y+(AL-6-anim.y)*(k/.7)}else{const q=(k-.7)/.3;bx=110+(START.x-110)*q;by=AL-6+(START.y-(AL-6))*q}}
+  else{const k=anim.t/.3;bx=anim.x+(START.x-anim.x)*k;by=anim.y+(START.y-anim.y)*k}}
  else if(state==='galloping'||state==='finish'){bx=START.x;by=START.y}
  drawBall(bx,by,bs,bc,sink);
  if(state==='aim'&&!drag){const pulse=(Math.sin(time*5)+1)/2;const a=P(START.x,START.y-14),b=P(START.x,START.y-70);cx.strokeStyle=`rgba(255,255,255,${.4+pulse*.4})`;cx.lineWidth=3;cx.setLineDash([6,8]);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();cx.setLineDash([]);
@@ -356,6 +355,7 @@ function drawFinish(){
 }
 function frame(now){const dt=Math.min(.05,(now-lastT)/1000)*SPEED;lastT=now;
  if(G&&state!=='menu')update(dt);else time+=dt;
+ if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=2.2+h.i*.9+Math.random();h.next-=dt;if(h.next<=0&&!h.ga){cpuQuickRoll(h);h.next=3.4+Math.random()*1.8}}
  cx.clearRect(0,0,W(),H());
  const bg=cx.createLinearGradient(0,0,0,H());bg.addColorStop(0,'#bfe9ff');bg.addColorStop(.35,'#9be08a');bg.addColorStop(1,'#6fc25d');cx.fillStyle=bg;cx.fillRect(0,0,W(),H());
  if(G){drawTrack();const sk=shake>0?shake*14:0;cx.save();cx.translate(0,sk*Math.sin(time*90)*.5+sk*.3);drawAlley();cx.restore();drawMsg();if(state==='finish')drawFinish()}
