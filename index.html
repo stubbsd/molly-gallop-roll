@@ -40,7 +40,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7cc96b;touch-action:n
 .tile.lock img{filter:grayscale(1) brightness(.9);opacity:.35}
 .tile .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:min(10vmin,60px);font-weight:900;color:#fff;text-shadow:0 .5vmin 0 #7a8a99,0 0 1vmin rgba(0,0,0,.4)}
 .tile.lock{background:#dfe3e6}
-#picker .tile{width:min(10.5vmin,84px);height:min(10vmin,72px);border-radius:2vmin;border-width:.6vmin}#picker .tile .num{font-size:min(7vmin,44px)}#picker .tile.new{animation:pop 1s ease-out infinite alternate}#picker .row{gap:1vmin;flex-wrap:wrap;justify-content:center}
+#picker .tile{flex:0 0 auto;width:min(9vmin,64px);height:min(8vmin,56px);border-radius:1.6vmin;border-width:.5vmin;box-shadow:0 .5vmin 0 rgba(0,0,0,.18)}#picker .tile.sel{transform:scale(1.04)}#picker .tile .num{font-size:min(6vmin,36px)}#picker .tile.new{animation:pop 1s ease-out infinite alternate}#picker .row{gap:1vmin;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:.8vmin .6vmin;max-width:100%;scrollbar-width:none}#picker .row::-webkit-scrollbar{display:none}#picker{pointer-events:auto;width:min(96vw,760px);box-sizing:border-box}#end.won{gap:1.5vmin}#end.won .big{padding-top:1.4vmin;padding-bottom:1.4vmin;font-size:min(5vmin,30px)}
 @keyframes pop{from{transform:scale(1)}to{transform:scale(1.12)}}
 </style>
 </head>
@@ -66,14 +66,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7cc96b;touch-action:n
 </div>
 <div id="end" class="ov hide">
   <div style="flex:1"></div>
-  <div id="picker" class="card hide" style="padding:2vmin 3vmin;max-width:96vw;gap:1.5vmin"><div class="row" id="endponies"></div><div class="row" id="endhats"></div><div class="row" id="endcapes"></div></div>
+  <div id="picker" class="card hide" style="padding:1.2vmin 2vmin;gap:.6vmin"><div class="row" id="endponies"></div><div class="row" id="endhats"></div><div class="row" id="endcapes"></div></div>
   <div class="row" style="margin-bottom:6vmin">
     <button class="big" id="next">▶ Next race</button>
     <button class="big small" id="again">⟲</button>
   </div>
 </div>
 </div>
-<script src="game.js?v=27"></script>
+<script src="game.js?v=28"></script>
 <script>if('serviceWorker' in navigator&&location.protocol!=='file:'){let r=!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!r){r=1;location.reload()}});navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(g=>g.update()).catch(()=>{})}</script>
 </body>
 </html>

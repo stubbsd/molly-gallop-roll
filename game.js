@@ -443,7 +443,7 @@ function drawFinish(){
  const fs=Math.min(w*.13,h*.1);cx.font=`900 ${fs}px system-ui,sans-serif`;cx.textAlign='center';cx.textBaseline='middle';
  const cols=['#e53935','#fb8c00','#fbc02d','#43a047','#1e88e5','#8e24aa'];let x0=w/2-cx.measureText(txt).width/2;
  for(let i=0;i<txt.length;i++){const ch=txt[i],cw=cx.measureText(ch).width;cx.fillStyle=cols[i%6];cx.fillText(ch,x0+cw/2,h*.14+Math.sin(time*4+i)*4);x0+=cw}
- const base=h*.68,pw=Math.min(w*.26,h*.22),hts=[h*.2,h*.14,h*.1],xs=[w/2,w/2-pw,w/2+pw];
+ const up=!$('picker').classList.contains('hide')&&!$('end').classList.contains('hide'),base=up?h*.5:h*.68,pw=up?Math.min(w*.2,h*.15):Math.min(w*.26,h*.22),hts=[h*.2,h*.14,h*.1],xs=[w/2,w/2-pw,w/2+pw];
  [1,2,0].forEach(p=>{const x=xs[p],ph=hts[p];rr(x-pw/2+4,base-ph,pw-8,ph,10);cx.fillStyle=['#ffd23f','#cfd8dc','#e0a96d'][p];cx.fill();
   cx.fillStyle='#fff';cx.font=`900 ${ph*.5}px system-ui`;cx.fillText(p+1,x,base-ph/2);
   drawHorse(x,base-ph-pw*.24,pw/75,G.podium[p],time*6,p===0);});
@@ -511,13 +511,13 @@ function portrait(pony,hat,cape){const c=document.createElement('canvas');c.widt
 const _pc={};function pimg(k,pony,hat,cape){return _pc[k]||(_pc[k]=portrait(pony,hat,cape))}
 function tile(src,locked,need,sel,onclick){const b=document.createElement('button');b.className='tile'+(locked?' lock':'')+(sel?' sel':'');const im=new Image();im.src=src;b.appendChild(im);
  if(locked){const n=document.createElement('div');n.className='num';n.textContent=need;b.appendChild(n)}b.onclick=()=>{unlock();if(locked){SFX.bump&&SFX.bump();return}onclick()};return b}
-function buildStable(P=$('ponies'),Hh=$('hats'),nu=[]){if(P.id==='ponies')$('stablecups').textContent='🏆 '+save.wins;const re=()=>buildStable(P,Hh,nu);P.innerHTML='';Hh.innerHTML='';
+function buildStable(P=$('ponies'),Hh=$('hats'),nu=[]){if(P.id==='ponies')$('stablecups').textContent='🏆 '+save.wins;const re=()=>{const rs=[P,Hh,$('endcapes')].map(e=>e.scrollLeft);buildStable(P,Hh,nu);[P,Hh,$('endcapes')].forEach((e,j)=>e.scrollLeft=rs[j])};P.innerHTML='';Hh.innerHTML='';
  STABLE_ORDER.forEach(k=>{const p=STABLE[k];const b=tile(pimg('p'+k,k),save.wins<p.w,p.w,PONY()===k,()=>{save.pony=k;persist();SFX.ding(1);re()});if(nu.some(u=>u.pony===k))b.classList.add('new');P.appendChild(b)});
  HAT_ORDER.forEach(k=>{const x=HATS[k];const b=tile(k?pimg('h'+k,null,k):'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 130"><circle cx="80" cy="65" r="34" fill="none" stroke="#b0bec5" stroke-width="10"/><line x1="56" y1="89" x2="104" y2="41" stroke="#b0bec5" stroke-width="10"/></svg>'),save.wins<x.w,x.w,HAT()===k,()=>{save.hat=k;persist();SFX.ding(1);re()});if(nu.some(u=>u.hat===k))b.classList.add('new');Hh.appendChild(b)});
  const Cc=P.id==='endponies'?$('endcapes'):null;if(Cc){Cc.innerHTML='';CAPE_ORDER.forEach(k=>{const x=CAPES[k];const b=tile(k?pimg('c'+k,null,null,k):Hh.firstChild.querySelector('img').src,save.wins<x.w,x.w,CAPE()===k,()=>{save.cape=k;persist();SFX.ding(1);re()});if(nu.some(u=>u.cape===k))b.classList.add('new');Cc.appendChild(b)})}}
 function openStable(){unlock();buildStable();$('menu').classList.add('hide');$('menu').classList.remove('on');$('stable').classList.remove('hide');$('stable').classList.add('on')}
 function closeStable(){$('stable').classList.add('hide');$('stable').classList.remove('on');$('menu').classList.remove('hide');$('menu').classList.add('on');buildMenu()}
-function showUnlocks(){const won=G&&G.horses[G.podium[0]].human;$('picker').classList.toggle('hide',!won);if(won)buildStable($('endponies'),$('endhats'),G.newUnlocks||[])}
+function showUnlocks(){const won=G&&G.horses[G.podium[0]].human;$('picker').classList.toggle('hide',!won);$('end').classList.toggle('won',!!won);if(won)buildStable($('endponies'),$('endhats'),G.newUnlocks||[])}
 $('stablebtn').onclick=openStable;$('stabledone').onclick=closeStable;
 $('play').onclick=begin;$('next').onclick=begin;$('again').onclick=home;$('home').onclick=home;
 $('mute').onclick=()=>{save.muted=!save.muted;persist();$('mute').textContent=save.muted?'🔇':'🔊';if(save.muted){SFX.rollStop();musicStop()}else{unlock();musicStart()}};
