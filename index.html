@@ -40,7 +40,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7cc96b;touch-action:n
 .tile.lock img{filter:grayscale(1) brightness(.9);opacity:.35}
 .tile .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:min(10vmin,60px);font-weight:900;color:#fff;text-shadow:0 .5vmin 0 #7a8a99,0 0 1vmin rgba(0,0,0,.4)}
 .tile.lock{background:#dfe3e6}
-#unlocks .tile{animation:pop 1s ease-out infinite alternate}
+#picker .tile{width:min(10.5vmin,84px);height:min(10vmin,72px);border-radius:2vmin;border-width:.6vmin}#picker .tile .num{font-size:min(7vmin,44px)}#picker .tile.new{animation:pop 1s ease-out infinite alternate}#picker .row{gap:1vmin;flex-wrap:wrap;justify-content:center}
 @keyframes pop{from{transform:scale(1)}to{transform:scale(1.12)}}
 </style>
 </head>
@@ -53,7 +53,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7cc96b;touch-action:n
   <div class="card">
     <div class="stars" id="stars"></div>
     <button class="big" id="play">▶ Play</button>
-    <button class="big small" id="stablebtn" aria-label="Stable">🐴 <span id="cupcount">🏆0</span></button>
+    <button class="big small hide" style="display:none" id="stablebtn" aria-label="Stable">🐴 <span id="cupcount">🏆0</span></button>
   </div>
 </div>
 <div id="stable" class="ov hide">
@@ -66,14 +66,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7cc96b;touch-action:n
 </div>
 <div id="end" class="ov hide">
   <div style="flex:1"></div>
-  <div id="unlocks" class="row"></div>
+  <div id="picker" class="card hide" style="padding:2vmin 3vmin;max-width:96vw;gap:1.5vmin"><div class="row" id="endponies"></div><div class="row" id="endhats"></div></div>
   <div class="row" style="margin-bottom:6vmin">
     <button class="big" id="next">▶ Next race</button>
     <button class="big small" id="again">⟲</button>
   </div>
 </div>
 </div>
-<script src="game.js?v=21"></script>
+<script src="game.js?v=22"></script>
 <script>if('serviceWorker' in navigator&&location.protocol!=='file:'){let r=!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!r){r=1;location.reload()}});navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(g=>g.update()).catch(()=>{})}</script>
 </body>
 </html>
