@@ -153,13 +153,13 @@ function missed(){SFX.rollStop();SFX.miss();ball.on=false;state='returning';anim
 // ---------- update ----------
 function update(dt){
  time+=dt;
- if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=2.2+Math.random()*1}}if(shake>0)shake=Math.max(0,shake-dt);
- if(state==='rolling'){const pd=dt*1.35,n=Math.ceil(pd/(1/240));for(let i=0;i<n&&state==='rolling';i++)step(pd/n)} // brisker, less floaty roll (same paths)
+ if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=2.8+Math.random()*1.2}}if(shake>0)shake=Math.max(0,shake-dt);
+ if(state==='rolling'){const pd=dt*1.15,n=Math.ceil(pd/(1/240));for(let i=0;i<n&&state==='rolling';i++)step(pd/n)} // brisker, less floaty roll (same paths)
  else if(state==='dropping'){anim.t+=dt;if(anim.t>.32){SFX.rattle();state='returning';anim={type:'trough',t:0,v:anim.h.v,y:anim.h.y}}}
- else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.5:.3;if(anim.t>=dur){
+ else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.65:.4;if(anim.t>=dur){
    ball={x:START.x,y:START.y,vx:0,vy:0,on:false};
    if(anim.type==='trough'){gallop(anim.v)}else{nextTurn()} }}
- for(const h of G?G.horses:[]){const g=h.ga;if(!g)continue;g.t+=dt;const per=.42;const k=Math.min(g.n,Math.floor(g.t/per));
+ for(const h of G?G.horses:[]){const g=h.ga;if(!g)continue;g.t+=dt;const per=.52;const k=Math.min(g.n,Math.floor(g.t/per));
    h.shown=g.from+Math.min(g.n,g.t/per);if(k>g.k){g.k=k;SFX.clop(k)}
    if(g.t>=g.n*per+.35){h.pos=g.from+g.n;h.shown=h.pos;h.ga=null;
      if(h.pos>=TRACK){h.pos=TRACK;h.shown=TRACK;if(!G.finishOrder.includes(h.i))G.finishOrder.push(h.i);SFX.cheer()}
@@ -279,7 +279,7 @@ function drawTrack(){
  for(let i=0;i<4;i++){const q=laneGeo(i),h=G.horses[i],moving=!!h.ga;
   const x=q.sx+(q.fx-q.sx)*h.shown/TRACK,y=q.y+q.h*.7,hs=Math.min(q.h/50,(q.fx-q.sx)/TRACK/22,2.4);
   if(moving){cx.fillStyle='rgba(120,70,30,.3)';for(let k=h.ga?h.ga.from:0;h.ga&&k<h.shown-.2;k+=.5){const px=q.sx+(q.fx-q.sx)*k/TRACK;cx.beginPath();cx.ellipse(px,y+2,3*q.k,1.8*q.k,0,0,7);cx.fill()}}
-  drawHorse(x,y-20*hs*.0,hs,i,moving?time*14:0,G.turn===i&&state!=='finish'&&!SOLO())}
+  drawHorse(x,y-(moving?Math.abs(Math.sin(time*7+i))*3.2*hs:0),hs,i,moving?time*14:0,G.turn===i&&state!=='finish'&&!SOLO())}
  for(const e of effects)if(e.type==='cpuball'&&e.t<1.2){const q=laneGeo(e.i),bx=q.lm+q.h*.45+q.h*.55,by=q.y+q.h*.5-Math.abs(Math.sin(e.t*7))*q.h*.25*(1-e.t/1.2),r=q.h*.14;
   cx.globalAlpha=Math.min(1,(1.2-e.t)*3);blob(bx,by,r,r,0,rg(bx,by,r,'#fff',BALLC[e.i],shade(BALLC[e.i])));
   if(e.v===0&&e.t>.5){cx.fillStyle='rgba(255,255,255,.9)';cx.font=`900 ${q.h*.3}px system-ui,sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('oops',bx+q.h*.4,q.y+q.h*.3)}
@@ -329,7 +329,9 @@ function alleyStatic(){
   cx.save();cx.beginPath();cx.ellipse(c.x,c.y,rx,ry,0,0,7);cx.clip();
   const wg2=cx.createLinearGradient(0,c.y-ry,0,c.y+ry);wg2.addColorStop(0,'#3a2412');wg2.addColorStop(.5,'#140b05');wg2.addColorStop(1,'#000');cx.fillStyle=wg2;cx.fillRect(c.x-rx,c.y-ry,rx*2,ry*2);
   const hg=cx.createRadialGradient(c.x,c.y+ry*.55,0,c.x,c.y+ry*.55,rx);hg.addColorStop(0,'#000');hg.addColorStop(.8,'#050505');hg.addColorStop(1,'rgba(0,0,0,.9)');
-  cx.fillStyle=hg;cx.beginPath();cx.ellipse(c.x,c.y+ry*.5,rx*.97,ry*.95,0,0,7);cx.fill();cx.restore()
+  cx.fillStyle=hg;cx.beginPath();cx.ellipse(c.x,c.y+ry*.5,rx*.97,ry*.95,0,0,7);cx.fill();
+  cx.strokeStyle='rgba(0,0,0,.55)';cx.lineWidth=Math.max(2,ry*.5);cx.beginPath();cx.ellipse(c.x,c.y+ry*.12,rx,ry,0,Math.PI*1.05,Math.PI*1.95);cx.stroke();cx.restore();
+  cx.strokeStyle='rgba(255,236,200,.7)';cx.lineWidth=Math.max(1.5,ry*.16);cx.beginPath();cx.ellipse(c.x,c.y+ry*.04,rx*1.02,ry*1.04,0,Math.PI*.12,Math.PI*.88);cx.stroke()
   cx.strokeStyle=['#fbc02d','#e53935','#43a047','#1e88e5'][(h.v-1)%4];cx.lineWidth=Math.max(2,rx*.16);cx.beginPath();cx.ellipse(c.x,c.y,rx*1.1,ry*1.1,0,0,7);cx.stroke()}
 }
 function drawAlley(){
@@ -339,8 +341,8 @@ function drawAlley(){
  const bc=BALLC[G.turn];let bx=ball.x,by=ball.y,bs=1,sink=0;
  if(state==='dropping'){let k=Math.min(1,anim.t/.16);k=k*k;bx=anim.x+(anim.h.x-anim.x)*k;by=anim.y+(anim.h.y-anim.y)*k;sink=k}
  else if(state==='returning'){
-  if(anim.type==='trough'){const k=anim.t/.5;if(k<.7){bx=110;by=anim.y+(AL-6-anim.y)*(k/.7)}else{const q=(k-.7)/.3;bx=110+(START.x-110)*q;by=AL-6+(START.y-(AL-6))*q}}
-  else{const k=anim.t/.3;bx=anim.x+(START.x-anim.x)*k;by=anim.y+(START.y-anim.y)*k}}
+  if(anim.type==='trough'){const k=anim.t/.65;if(k<.7){bx=110;by=anim.y+(AL-6-anim.y)*(k/.7)}else{const q=(k-.7)/.3;bx=110+(START.x-110)*q;by=AL-6+(START.y-(AL-6))*q}}
+  else{const k=anim.t/.4;bx=anim.x+(START.x-anim.x)*k;by=anim.y+(START.y-anim.y)*k}}
  else if(state==='galloping'||state==='finish'){bx=START.x;by=START.y}
  drawBall(bx,by,bs,bc,sink);
  if(state==='aim'&&!drag){const pulse=(Math.sin(time*5)+1)/2;const a=P(START.x,START.y-14),b=P(START.x,START.y-70);cx.strokeStyle=`rgba(255,255,255,${.4+pulse*.4})`;cx.lineWidth=3;cx.setLineDash([6,8]);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();cx.setLineDash([]);
@@ -372,11 +374,18 @@ function drawFinish(){
  // confetti
  for(let i=0;i<60;i++){const x=(i*97+time*40*(1+i%3))%w,y=(i*53+time*90*(1+i%4))%h;cx.fillStyle=cols[i%6];cx.fillRect(x,y,6,10)}
 }
+function drawParallax(){const w=W(),h=H(),bx=(typeof ball!=='undefined'&&ball?ball.x-50:0)/50;
+ const layers=[[.30,'#b5e6a0',.06,26,.9],[.42,'#93d67e',.11,34,1.3],[.56,'#77c765',.18,44,1.8]];
+ for(const [yy,col,amp,hh,sp] of layers){const off=-bx*amp*w*.15+Math.sin(time*.15*sp)*6*sp;cx.fillStyle=col;cx.beginPath();cx.moveTo(-20,h);
+  for(let x=-20;x<=w+20;x+=16){cx.lineTo(x,h*yy-hh*(.6+.4*Math.sin((x-off)/(w*.16)+sp)))}cx.lineTo(w+20,h);cx.closePath();cx.fill()}
+ for(let k=0;k<6;k++){const x=((k*w/5+time*(6+k%3*3)-bx*w*.02*(1+k%3))%(w+80)+w+80)%(w+80)-40,y=h*(.62+.06*(k%3));
+  cx.fillStyle=['#ffeb3b','#fff','#ffb74d','#4fc3f7','#fff','#aed581'][k];cx.globalAlpha=.55;cx.beginPath();cx.arc(x,y,3+k%2,0,7);cx.fill()}cx.globalAlpha=1}
 function frame(now){const dt=Math.min(.05,(now-lastT)/1000)*SPEED;lastT=now;
  if(G&&state!=='menu')update(dt);else time+=dt;
- if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=2.2+Math.random()*1}}
+ if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=2.8+Math.random()*1.2}}
  cx.clearRect(0,0,W(),H());
  const bg=cx.createLinearGradient(0,0,0,H());bg.addColorStop(0,'#bfe9ff');bg.addColorStop(.35,'#9be08a');bg.addColorStop(1,'#6fc25d');cx.fillStyle=bg;cx.fillRect(0,0,W(),H());
+ if(G)drawParallax();
  if(G){drawTrack();const sk=shake>0?shake*14:0;cx.save();cx.translate(0,sk*Math.sin(time*90)*.5+sk*.3);drawAlley();cx.restore();drawMsg();if(state==='finish')drawFinish()}
  requestAnimationFrame(frame)}
 // ---------- input ----------
