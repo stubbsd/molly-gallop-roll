@@ -21,11 +21,21 @@ const STABLE_ORDER=STABLE.map((p,k)=>k).sort((a,b)=>STABLE[a].w-STABLE[b].w||a-b
 const HATS=[{n:'none',w:0},{n:'party',w:1},{n:'cowboy',w:2},{n:'crown',w:4},{n:'tophat',w:6},{n:'wizard',w:3},{n:'flowers',w:5},{n:'propeller',w:7},{n:'chef',w:8},{n:'bunny',w:10},{n:'cupcake',w:12},{n:'tiara',w:3},{n:'goldtiara',w:9},{n:'startiara',w:11}];
 const CAPES=[{n:'none',w:0},{n:'red',w:2,c:'#e53935',d:'#a31f1c',l:'#ff8a80'},{n:'starry',w:4,c:'#1e5bb8',d:'#123c80',l:'#64b5f6',st:1},{n:'purple',w:6,c:'#8e24aa',d:'#5e1675',l:'#ce93d8',st:1},{n:'gold',w:9,c:'#ffb300',d:'#c77c00',l:'#ffe082'},{n:'leaf',w:11,c:'#43a047',d:'#2e7031',l:'#a5d6a7',dot:1}];
 const CAPE_ORDER=CAPES.map((h,k)=>k).sort((a,b)=>CAPES[a].w-CAPES[b].w||a-b);
+const BALLS=[{n:'Classic Red',w:0,c:'#e53935'},{n:'Sunny Stripes',w:1,c:'#ffca28',p:'stripe',q:'#ff7043'},{n:'Blue Spots',w:2,c:'#1e88e5',p:'dots',q:'#ffffff'},{n:'Starry Night',w:4,c:'#5e35b1',p:'stars',q:'#ffeb3b'},{n:'Candy Swirl',w:5,c:'#f06292',p:'swirl',q:'#ffffff'},{n:'Rainbow',w:7,c:'#ff5252',p:'rainbow'},{n:'Ladybird',w:8,c:'#e53935',p:'dots',q:'#212121'},{n:'Watermelon',w:10,c:'#66bb6a',p:'stripe',q:'#1b5e20'},{n:'Mint Hearts',w:12,c:'#4dd0b0',p:'stars',q:'#ff4081',h:1},{n:'Golden Sparkle',w:14,c:'#ffb300',p:'stars',q:'#fffde7'}];
+const BALL=()=>{const h=save.ball|0;return BALLS[h]&&save.wins>=BALLS[h].w?h:0};
+function ballPat(g,x,y,r,k,rot){const B=BALLS[k]||BALLS[0];g.save();g.beginPath();g.arc(x,y,r,0,7);g.clip();g.fillStyle=B.c;g.fillRect(x-r,y-r,2*r,2*r);g.translate(x,y);g.rotate(rot||0);g.fillStyle=B.q||'#fff';
+ if(B.p==='stripe'){for(let i=-3;i<=3;i+=2)g.fillRect(i*r*.3-r*.13,-r,r*.3,2*r)}
+ else if(B.p==='dots'){[[0,0,.3],[-.55,-.45,.2],[.55,-.4,.2],[-.5,.5,.2],[.55,.5,.2],[0,-.85,.15],[0,.85,.15]].forEach(d=>{g.beginPath();g.arc(d[0]*r,d[1]*r,d[2]*r,0,7);g.fill()})}
+ else if(B.p==='stars'){[[0,0,.38],[-.6,-.5,.22],[.6,-.45,.22],[-.5,.6,.2],[.6,.55,.2]].forEach(d=>{g.beginPath();if(B.h){const s=d[2]*r,cx0=d[0]*r,cy0=d[1]*r;g.moveTo(cx0,cy0+s*.8);g.bezierCurveTo(cx0-s*1.4,cy0-s*.2,cx0-s*.5,cy0-s*1.1,cx0,cy0-s*.35);g.bezierCurveTo(cx0+s*.5,cy0-s*1.1,cx0+s*1.4,cy0-s*.2,cx0,cy0+s*.8)}else for(let i=0;i<10;i++){const a=i*Math.PI/5-Math.PI/2,rr=(i%2?.45:1)*d[2]*r;g.lineTo(d[0]*r+Math.cos(a)*rr,d[1]*r+Math.sin(a)*rr)}g.fill()})}
+ else if(B.p==='swirl'){g.strokeStyle=B.q;g.lineWidth=r*.22;g.lineCap='round';g.beginPath();for(let t=0;t<12;t+=.2){const rr=r*t/11;g.lineTo(Math.cos(t)*rr,Math.sin(t)*rr)}g.stroke()}
+ else if(B.p==='rainbow'){['#ff3b3b','#ff9800','#ffeb3b','#4cdf50','#2fa8ff','#a65cff'].forEach((c,i)=>{g.fillStyle=c;g.fillRect(-r,-r+i*r/3,2*r,r/3+1)})}
+ g.restore();const s=g.createRadialGradient(x-r*.35,y-r*.4,r*.05,x,y,r);s.addColorStop(0,'rgba(255,255,255,.85)');s.addColorStop(.3,'rgba(255,255,255,0)');s.addColorStop(.8,'rgba(0,0,0,0)');s.addColorStop(1,'rgba(0,0,0,.4)');g.fillStyle=s;g.beginPath();g.arc(x,y,r,0,7);g.fill();g.strokeStyle='rgba(0,0,0,.25)';g.lineWidth=Math.max(1,r*.05);g.stroke()}
+const _bimg={};function ballImg(k){if(_bimg[k])return _bimg[k];const c=document.createElement('canvas');c.width=c.height=96;ballPat(c.getContext('2d'),48,48,40,k,0);return _bimg[k]=c.toDataURL()}
 const CAPE=()=>{const h=save.cape|0;return CAPES[h]&&save.wins>=CAPES[h].w?h:0};
 const HAT_ORDER=HATS.map((h,k)=>k).sort((a,b)=>HATS[a].w-HATS[b].w||a-b);
 let PORTRAIT=null;const PONY=()=>PORTRAIT!=null?PORTRAIT:(STABLE[save.pony]&&save.wins>=STABLE[save.pony].w?save.pony:0);
 const HAT=()=>{const h=save.hat|0;return HATS[h]&&save.wins>=HATS[h].w?h:0};
-let save={level:1,players:1,wins:0,races:0,muted:false,pony:0,hat:0,cape:0};
+let save={level:1,players:1,wins:0,races:0,muted:false,pony:0,hat:0,cape:0,ball:0};
 try{Object.assign(save,JSON.parse(localStorage.getItem(SKEY)||'{}'))}catch(e){}
 const persist=()=>{try{localStorage.setItem(SKEY,JSON.stringify(save))}catch(e){}};
 // ---------- seeded rng ----------
@@ -195,7 +205,7 @@ function finishRace(){
  const fo=i=>{const k=G.finishOrder.indexOf(i);return k<0?99:k};const order=G.horses.slice().sort((a,b)=>(fo(a.i)-fo(b.i))||(b.pos-a.pos));
  G.podium=order.map(h=>h.i);
  const winner=G.horses[G.podium[0]];
- save.races++;G.newUnlocks=[];if(winner.human){const before=save.wins;save.wins++;STABLE.forEach((p,k)=>{if(p.w>before&&p.w<=save.wins)G.newUnlocks.push({pony:k})});CAPES.forEach((h,k)=>{if(h.w>before&&h.w<=save.wins)G.newUnlocks.push({cape:k})});HATS.forEach((h,k)=>{if(h.w>before&&h.w<=save.wins)G.newUnlocks.push({hat:k})});setTimeout(()=>{SFX.fanfare();setTimeout(()=>SFX.cheer(),1300)},350)}
+ save.races++;G.newUnlocks=[];if(winner.human){const before=save.wins;save.wins++;STABLE.forEach((p,k)=>{if(p.w>before&&p.w<=save.wins)G.newUnlocks.push({pony:k})});CAPES.forEach((h,k)=>{if(h.w>before&&h.w<=save.wins)G.newUnlocks.push({cape:k})});BALLS.forEach((h,k)=>{if(h.w>before&&h.w<=save.wins)G.newUnlocks.push({ball:k})});HATS.forEach((h,k)=>{if(h.w>before&&h.w<=save.wins)G.newUnlocks.push({hat:k})});setTimeout(()=>{SFX.fanfare();setTimeout(()=>SFX.cheer(),1300)},350)}
  if(winner.human||G.humans>1)save.level=Math.min(99,save.level+1);
  persist();
  setTimeout(()=>{showUnlocks();$('end').classList.remove('hide');$('end').classList.add('on')},(winner.human?2600:900)/SPEED);
@@ -210,7 +220,7 @@ function cached(name,fn){const k=[name,cv.width,cv.height,G.level,G.holes.map(h=
 function rg(x,y,r,c0,c1,c2){const g=cx.createRadialGradient(x-r*.35,y-r*.45,r*.05,x,y,r*1.15);g.addColorStop(0,c0);g.addColorStop(.45,c1);g.addColorStop(1,c2);return g}
 function blob(x,y,rx,ry,rot,fill){cx.fillStyle=fill;cx.beginPath();cx.ellipse(x,y,rx,ry,rot||0,0,7);cx.fill()}
 // chunky shaded cartoon horse with a friendly jockey; origin = ground under the belly
-let HATNONE=false;const GUT=[];window.__gut=()=>GUT.slice();
+let HATNONE=false;const GUT=[];window.__balls=()=>BALLS.map(b=>[b.n,b.w]);window.__gut=()=>GUT.slice();
 function drawHat(h,ax=25,ay=-36,ro=.25){if(!h)return;cx.save();cx.translate(ax,ay);cx.rotate(ro);
  if(h===1){cx.fillStyle='#4fc3f7';cx.beginPath();cx.moveTo(-6,0);cx.lineTo(6,0);cx.lineTo(0,-16);cx.closePath();cx.fill();cx.fillStyle='#ffeb3b';for(const [x,y] of [[-2,-4],[2,-8],[-1,-11]]){cx.beginPath();cx.arc(x,y,1.3,0,7);cx.fill()}cx.fillStyle='#ff9800';cx.beginPath();cx.arc(0,-17,2.6,0,7);cx.fill()}
  else if(h===2){cx.fillStyle='#a0682f';cx.beginPath();cx.ellipse(0,0,13,3.5,0,0,7);cx.fill();cx.fillStyle='#8a5526';cx.beginPath();cx.moveTo(-6,0);cx.quadraticCurveTo(-7,-11,0,-10);cx.quadraticCurveTo(7,-11,6,0);cx.closePath();cx.fill();cx.fillStyle='#e53935';cx.fillRect(-6,-3,12,2)}
@@ -433,8 +443,7 @@ function drawBall(x,y,sc,c,sink=0){const q=P(x,y),r=BR*L.S*q.k*sc,ry=r*(.42+.3*q
  if(sink>0){const hy=q.y;cx.beginPath();cx.rect(q.x-3*r,hy-4*r,6*r,4*r+ry*.4);cx.clip()}
  if(!sink){cx.fillStyle='rgba(40,20,5,.3)';cx.beginPath();cx.ellipse(q.x+r*.35,q.y+ry*.2,r*1.05,ry*1.1,0,0,7);cx.fill()}
  const cy=q.y-r*.85+sink*r*2.2;
- const g=cx.createRadialGradient(q.x-r*.35,cy-r*.4,r*.08,q.x,cy,r);g.addColorStop(0,'#fff');g.addColorStop(.22,c);g.addColorStop(.85,shade(c));g.addColorStop(1,shade(shade(c)));
- cx.fillStyle=g;cx.beginPath();cx.arc(q.x,cy,r,0,7);cx.fill();cx.restore()}
+ ballPat(cx,q.x,cy,r,BALL(),(y+x)*.06);cx.restore()}
 function shadeHex(c,f){const n=parseInt(c.slice(1),16);return`rgb(${(n>>16)*f|0},${(n>>8&255)*f|0},${(n&255)*f|0})`}
 function shade(c){const n=parseInt(c.slice(1),16);const r=(n>>16)*.6|0,g=(n>>8&255)*.6|0,b=(n&255)*.6|0;return`rgb(${r},${g},${b})`}
 function drawX2(){for(const e of effects)if(e.type==='x2'&&e.t<1.3){const w=W(),h=H(),k=Math.min(1,e.t*5),a=Math.min(1,(1.3-e.t)*3),sz=Math.min(w,h)*.12*(0.6+.4*k);
@@ -515,10 +524,10 @@ function portrait(pony,hat,cape){const c=document.createElement('canvas');c.widt
 const _pc={};function pimg(k,pony,hat,cape){return _pc[k]||(_pc[k]=portrait(pony,hat,cape))}
 function tile(src,locked,need,sel,onclick){const b=document.createElement('button');b.className='tile'+(locked?' lock':'')+(sel?' sel':'');const im=new Image();im.src=src;b.appendChild(im);
  if(locked){const n=document.createElement('div');n.className='num';n.textContent=need;b.appendChild(n)}b.onclick=()=>{unlock();if(locked){SFX.bump&&SFX.bump();return}onclick()};return b}
-function buildStable(P=$('ponies'),Hh=$('hats'),nu=[]){if(P.id==='ponies')$('stablecups').textContent='🏆 '+save.wins;const re=()=>{const rs=[P,Hh,$('endcapes')].map(e=>e.scrollLeft);buildStable(P,Hh,nu);[P,Hh,$('endcapes')].forEach((e,j)=>e.scrollLeft=rs[j])};P.innerHTML='';Hh.innerHTML='';
+function buildStable(P=$('ponies'),Hh=$('hats'),nu=[]){if(P.id==='ponies')$('stablecups').textContent='🏆 '+save.wins;const re=()=>{const rs=[P,Hh,$('endcapes'),$('endballs')].map(e=>e.scrollLeft);buildStable(P,Hh,nu);[P,Hh,$('endcapes'),$('endballs')].forEach((e,j)=>e.scrollLeft=rs[j])};P.innerHTML='';Hh.innerHTML='';
  STABLE_ORDER.forEach(k=>{const p=STABLE[k];const b=tile(pimg('p'+k,k),save.wins<p.w,p.w,PONY()===k,()=>{save.pony=k;persist();SFX.ding(1);re()});if(nu.some(u=>u.pony===k))b.classList.add('new');P.appendChild(b)});
  HAT_ORDER.forEach(k=>{const x=HATS[k];const b=tile(k?pimg('h'+k,null,k):'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 130"><circle cx="80" cy="65" r="34" fill="none" stroke="#b0bec5" stroke-width="10"/><line x1="56" y1="89" x2="104" y2="41" stroke="#b0bec5" stroke-width="10"/></svg>'),save.wins<x.w,x.w,HAT()===k,()=>{save.hat=k;persist();SFX.ding(1);re()});if(nu.some(u=>u.hat===k))b.classList.add('new');Hh.appendChild(b)});
- const Cc=P.id==='endponies'?$('endcapes'):null;if(Cc){Cc.innerHTML='';CAPE_ORDER.forEach(k=>{const x=CAPES[k];const b=tile(k?pimg('c'+k,null,null,k):Hh.firstChild.querySelector('img').src,save.wins<x.w,x.w,CAPE()===k,()=>{save.cape=k;persist();SFX.ding(1);re()});if(nu.some(u=>u.cape===k))b.classList.add('new');Cc.appendChild(b)})}}
+ const Cc=P.id==='endponies'?$('endcapes'):null;if(Cc){Cc.innerHTML='';CAPE_ORDER.forEach(k=>{const x=CAPES[k];const b=tile(k?pimg('c'+k,null,null,k):Hh.firstChild.querySelector('img').src,save.wins<x.w,x.w,CAPE()===k,()=>{save.cape=k;persist();SFX.ding(1);re()});if(nu.some(u=>u.cape===k))b.classList.add('new');Cc.appendChild(b)});const Bb=$('endballs');Bb.innerHTML='';BALLS.forEach((x,k)=>{const b=tile(ballImg(k),save.wins<x.w,x.w,BALL()===k,()=>{save.ball=k;persist();SFX.ding(1);re()});b.title=x.n;if(nu.some(u=>u.ball===k))b.classList.add('new');Bb.appendChild(b)})}}
 function openStable(){unlock();buildStable();$('menu').classList.add('hide');$('menu').classList.remove('on');$('stable').classList.remove('hide');$('stable').classList.add('on')}
 function closeStable(){$('stable').classList.add('hide');$('stable').classList.remove('on');$('menu').classList.remove('hide');$('menu').classList.add('on');buildMenu()}
 function showUnlocks(){const won=G&&G.horses[G.podium[0]].human;$('picker').classList.toggle('hide',!won);$('end').classList.toggle('won',!!won);if(won)buildStable($('endponies'),$('endhats'),G.newUnlocks||[])}
