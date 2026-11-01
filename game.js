@@ -47,7 +47,7 @@ function makeRace(level,players){
  const themes=[['#c98d4f','#e0a96d'],['#b77b45','#d89c62'],['#cf9a5d','#ecc08a'],['#a8703f','#d0955a']];
  const humans=Math.max(1,Math.min(4,players));
  return{level,g,gx,holes,pegs,theme:themes[(level-1)%themes.length],cpuSkill:Math.min(.92,.45+L*.06),
-  horses:COLORS.map((c,i)=>({i,pos:0,shown:0,human:i<humans,finished:0})),turn:0,humans,finishOrder:[]};
+  horses:COLORS.map((c,i)=>({i,pos:0,shown:0,human:i<humans,finished:0,ga:null})),turn:0,humans,finishOrder:[]};
 }
 // ---------- state ----------
 let state='menu',ball={x:START.x,y:START.y,vx:0,vy:0,on:false},msg=null,anim=null,effects=[],t0=performance.now(),lastT=t0,time=0;
@@ -74,14 +74,24 @@ function startTurn(){
  if(h.human){state='aim';showMsg(G.humans===1?'YOUR TURN!':COLORS[h.i].n.toUpperCase()+"'S TURN!",COLORS[h.i].c,1.4)}
  else{state='cpuwait';showMsg('',COLORS[h.i].c,0);setTimeout(()=>{if(state==='cpuwait')cpuRoll()},900/SPEED)}
 }
+const SOLO=()=>G&&G.humans===1;
 function nextTurn(){
+ if(SOLO()){if(G.finishOrder.length){state='settle';return}return startTurn()}
  if(G.finishOrder.length){return finishRace()}
  G.turn=(G.turn+1)%4;startTurn();
 }
 function launch(vx,vy){
  const sp=Math.hypot(vx,vy),max=360;if(sp>max){vx*=max/sp;vy*=max/sp}
  ball.vx=vx;ball.vy=vy;ball.on=true;state='rolling';ball.t=0;SFX.rollStart();
+ // solo: the three CPU horses roll at the same time as the player, each from its own alley
+ if(SOLO()&&cur().human){const race=G;[1,2,3].forEach((i,k)=>setTimeout(()=>{if(G!==race||state==='finish'||G.finishOrder.length)return;cpuQuickRoll(G.horses[i])},(350+k*450+Math.random()*250)/SPEED))}
 }
+// simple, fair CPU roll for solo races: mostly small gallops, sometimes a miss, rarely a big one
+function cpuQuickRoll(h){const L=Math.min(G.level,8),r=Math.random();
+ const w=[.44-L*.016,.3,.19+L*.004,.11+L*.004,.06+L*.004];let a=0,v=0;const tot=w.reduce((x,y)=>x+y);for(let k=0;k<5;k++){a+=w[k]/tot;if(r<a){v=k;break}}
+ effects.push({type:'cpuball',i:h.i,t:0,v});
+ if(v>0)setTimeout(()=>{if(state!=='finish'&&h.pos<TRACK)startGallop(h,v)},500/SPEED)}
+function startGallop(h,n){n=Math.min(n,TRACK-h.pos);if(n<=0)return;h.ga={from:h.pos,n,t:0,k:0};SFX.ding(n);effects.push({type:'plus',n,i:h.i,t:0})}
 function cpuRoll(){
  const sk=G.cpuSkill,r=Math.random;
  // pick a target: smarter CPUs go for valuable holes
@@ -128,22 +138,21 @@ function update(dt){
  else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?1.1:.6;if(anim.t>=dur){
    ball={x:START.x,y:START.y,vx:0,vy:0,on:false};
    if(anim.type==='trough'){gallop(anim.v)}else{nextTurn()} }}
- else if(state==='galloping'){const h=cur();anim.t+=dt;const per=.42;const k=Math.min(anim.n,Math.floor(anim.t/per));
-   h.shown=anim.from+Math.min(anim.n,anim.t/per);
-   if(k>anim.k){anim.k=k;SFX.clop(k)}
-   if(anim.t>=anim.n*per+.35){h.pos=anim.from+anim.n;h.shown=h.pos;
-     if(h.pos>=TRACK){h.pos=TRACK;h.shown=TRACK;G.finishOrder.push(h.i);SFX.cheer()}
-     nextTurn()}}
+ for(const h of G?G.horses:[]){const g=h.ga;if(!g)continue;g.t+=dt;const per=.42;const k=Math.min(g.n,Math.floor(g.t/per));
+   h.shown=g.from+Math.min(g.n,g.t/per);if(k>g.k){g.k=k;SFX.clop(k)}
+   if(g.t>=g.n*per+.35){h.pos=g.from+g.n;h.shown=h.pos;h.ga=null;
+     if(h.pos>=TRACK){h.pos=TRACK;h.shown=TRACK;if(!G.finishOrder.includes(h.i))G.finishOrder.push(h.i);SFX.cheer()}
+     if(state==='galloping'&&h===cur())nextTurn()}}
+ if(SOLO()&&G.finishOrder.length&&(state==='aim'||state==='settle')&&!G.horses.some(h=>h.ga))finishRace();
  for(const e of effects)e.t+=dt;effects=effects.filter(e=>e.t<2);
  if(msg){msg.t+=dt;if(msg.t>msg.d)msg=null}
 }
-function gallop(n){const h=cur();state='galloping';anim={t:0,n:Math.min(n,TRACK-h.pos),k:0,from:h.pos};SFX.ding(n);
- effects.push({type:'plus',n,i:h.i,t:0})}
+function gallop(n){const h=cur();state='galloping';startGallop(h,n);if(!h.ga)nextTurn()}
 function showMsg(text,c,d){msg=text?{text,c,d,t:0}:null}
 // ---------- finish ----------
 function finishRace(){
  state='finish';
- const order=G.horses.slice().sort((a,b)=>(b.pos-a.pos)||(G.finishOrder.indexOf(a.i)-G.finishOrder.indexOf(b.i)));
+ const fo=i=>{const k=G.finishOrder.indexOf(i);return k<0?99:k};const order=G.horses.slice().sort((a,b)=>(fo(a.i)-fo(b.i))||(b.pos-a.pos));
  G.podium=order.map(h=>h.i);
  const winner=G.horses[G.podium[0]];
  save.races++;if(winner.human){save.wins++}
@@ -245,10 +254,14 @@ function drawTrack(){
  for(let i=0;i<4;i++){const q=laneGeo(i),h=G.horses[i];const bx=q.lm+q.h*.45,by=q.y+q.h/2,br=Math.min(q.h*.36,22);
   blob(bx,by+2,br,br,0,'rgba(0,0,0,.15)');blob(bx,by,br,br,0,rg(bx,by,br,COLORS[i].l,COLORS[i].c,COLORS[i].d));
   cx.fillStyle='#fff';cx.font=`900 ${br*.78}px system-ui,sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText(h.human?(G.humans===1?'YOU':'P'+(i+1)):'🤖',bx,by+1)}
- for(let i=0;i<4;i++){const q=laneGeo(i),h=G.horses[i],moving=state==='galloping'&&G.turn===i;
+ for(let i=0;i<4;i++){const q=laneGeo(i),h=G.horses[i],moving=!!h.ga;
   const x=q.sx+(q.fx-q.sx)*h.shown/TRACK,y=q.y+q.h*.7,hs=Math.min(q.h/50,(q.fx-q.sx)/TRACK/22,2.4);
-  if(moving){cx.fillStyle='rgba(120,70,30,.3)';for(let k=anim.from;k<h.shown-.2;k+=.5){const px=q.sx+(q.fx-q.sx)*k/TRACK;cx.beginPath();cx.ellipse(px,y+2,3*q.k,1.8*q.k,0,0,7);cx.fill()}}
+  if(moving){cx.fillStyle='rgba(120,70,30,.3)';for(let k=h.ga?h.ga.from:0;h.ga&&k<h.shown-.2;k+=.5){const px=q.sx+(q.fx-q.sx)*k/TRACK;cx.beginPath();cx.ellipse(px,y+2,3*q.k,1.8*q.k,0,0,7);cx.fill()}}
   drawHorse(x,y-20*hs*.0,hs,i,moving?time*14:0,G.turn===i&&state!=='finish')}
+ for(const e of effects)if(e.type==='cpuball'&&e.t<1.2){const q=laneGeo(e.i),bx=q.lm+q.h*.45+q.h*.55,by=q.y+q.h*.5-Math.abs(Math.sin(e.t*7))*q.h*.25*(1-e.t/1.2),r=q.h*.14;
+  cx.globalAlpha=Math.min(1,(1.2-e.t)*3);blob(bx,by,r,r,0,rg(bx,by,r,'#fff',BALLC[e.i],shade(BALLC[e.i])));
+  if(e.v===0&&e.t>.5){cx.fillStyle='rgba(255,255,255,.9)';cx.font=`900 ${q.h*.3}px system-ui,sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('oops',bx+q.h*.4,q.y+q.h*.3)}
+  cx.globalAlpha=1}
  for(const e of effects)if(e.type==='plus'){const i=e.i,q=laneGeo(i),h=G.horses[i];const x=q.sx+(q.fx-q.sx)*h.shown/TRACK+q.h*.9,y=q.y+q.h*.15-e.t*8,r=q.h*.32;
   cx.globalAlpha=Math.max(0,1-e.t/2);blob(x,y,r,r,0,rg(x,y,r,'#9ff0a8','#3fbf5a','#2e9e44'));
   cx.fillStyle='#fff';cx.font=`900 ${r*1.05}px system-ui,sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('+'+e.n,x,y+1);cx.globalAlpha=1}
