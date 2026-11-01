@@ -34,6 +34,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7cc96b;touch-action:n
 #music.off::after{content:'';position:absolute;left:18%;right:18%;top:48%;height:3px;background:#c33;transform:rotate(-40deg);border-radius:2px}
 #mute{position:absolute;right:calc(env(safe-area-inset-right) + 2vmin);top:calc(env(safe-area-inset-top) + 2vmin);width:10vmin;height:10vmin;max-width:56px;max-height:56px;border-radius:50%;border:none;background:rgba(255,255,255,.85);font-size:5vmin;pointer-events:auto;z-index:5}
 #home{position:absolute;left:calc(env(safe-area-inset-left) + 2vmin);top:calc(env(safe-area-inset-top) + 2vmin);width:10vmin;height:10vmin;max-width:56px;max-height:56px;border-radius:50%;border:none;background:rgba(255,255,255,.85);font-size:5vmin;z-index:5}
+.tile{position:relative;width:min(19vmin,120px);height:min(16vmin,100px);border-radius:3vmin;border:.8vmin solid #fff;background:#e9f6ff;box-shadow:0 .8vmin 0 rgba(0,0,0,.2);padding:0;overflow:hidden}
+.tile img{width:100%;height:100%;object-fit:contain;display:block}
+.tile.sel{border-color:#ffc400;transform:scale(1.08);background:#fff4c2}
+.tile.lock img{filter:grayscale(1) brightness(.9);opacity:.35}
+.tile .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:min(10vmin,60px);font-weight:900;color:#fff;text-shadow:0 .5vmin 0 #7a8a99,0 0 1vmin rgba(0,0,0,.4)}
+.tile.lock{background:#dfe3e6}
+#unlocks .tile{animation:pop 1s ease-out infinite alternate}
+@keyframes pop{from{transform:scale(1)}to{transform:scale(1.12)}}
 </style>
 </head>
 <body>
@@ -45,17 +53,27 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7cc96b;touch-action:n
   <div class="card">
     <div class="stars" id="stars"></div>
     <button class="big" id="play">▶ Play</button>
+    <button class="big small" id="stablebtn" aria-label="Stable">🐴 <span id="cupcount">🏆0</span></button>
+  </div>
+</div>
+<div id="stable" class="ov hide">
+  <div class="card" style="max-width:92vw;max-height:88vh;overflow:auto">
+    <div class="stars" id="stablecups"></div>
+    <div class="row" id="ponies"></div>
+    <div class="row" id="hats"></div>
+    <button class="big" id="stabledone">✓</button>
   </div>
 </div>
 <div id="end" class="ov hide">
   <div style="flex:1"></div>
+  <div id="unlocks" class="row"></div>
   <div class="row" style="margin-bottom:6vmin">
     <button class="big" id="next">▶ Next race</button>
     <button class="big small" id="again">⟲</button>
   </div>
 </div>
 </div>
-<script src="game.js?v=19"></script>
+<script src="game.js?v=20"></script>
 <script>if('serviceWorker' in navigator&&location.protocol!=='file:'){let r=!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!r){r=1;location.reload()}});navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(g=>g.update()).catch(()=>{})}</script>
 </body>
 </html>
