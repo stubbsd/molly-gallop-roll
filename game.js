@@ -402,10 +402,10 @@ function release(e){if(!drag||e.pointerId!==drag.id)return;const now=performance
  vx*=.85;launch(vx,vy*1.0)}
 cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',e=>{drag=null;ball.x=START.x;ball.y=START.y});
 // ---------- menus ----------
-function buildMenu(){const p=$('picks');p.innerHTML='';for(let n=1;n<=4;n++){const b=document.createElement('button');b.className='pick'+(save.players===n?' sel':'');b.style.background=`conic-gradient(${COLORS.slice(0,n).map((c,i)=>`${c.c} ${i*100/n}% ${(i+1)*100/n}%`).join(',')})`;b.textContent=n;b.onclick=()=>{unlock();save.players=n;persist();buildMenu();SFX.ding(1)};p.appendChild(b)}
+function buildMenu(){save.players=1;const p=$('picks');if(p){p.innerHTML='';}if(p)for(let n=1;n<=4;n++){const b=document.createElement('button');b.className='pick'+(save.players===n?' sel':'');b.style.background=`conic-gradient(${COLORS.slice(0,n).map((c,i)=>`${c.c} ${i*100/n}% ${(i+1)*100/n}%`).join(',')})`;b.textContent=n;b.onclick=()=>{unlock();save.players=n;persist();buildMenu();SFX.ding(1)};p.appendChild(b)}
  $('stars').textContent='Race '+save.level+'  '+'★'.repeat(Math.min(5,Math.ceil(save.level/2)))}
 function begin(){unlock();$('menu').classList.add('hide');$('menu').classList.remove('on');$('end').classList.add('hide');$('end').classList.remove('on');$('home').classList.remove('hide');
- G=makeRace(save.level,save.players);effects=[];startTurn()}
+ G=makeRace(save.level,1);effects=[];startTurn()}
 function home(){SFX.rollStop();state='menu';G=null;$('end').classList.add('hide');$('menu').classList.remove('hide');$('menu').classList.add('on');$('home').classList.add('hide');buildMenu()}
 $('play').onclick=begin;$('next').onclick=begin;$('again').onclick=home;$('home').onclick=home;
 $('mute').onclick=()=>{save.muted=!save.muted;persist();$('mute').textContent=save.muted?'🔇':'🔊';if(save.muted){SFX.rollStop();musicStop()}else{unlock();musicStart()}};
@@ -417,7 +417,7 @@ window.addEventListener('resize',layout);window.addEventListener('orientationcha
 document.addEventListener('gesturestart',e=>e.preventDefault());
 layout();buildMenu();
 // demo race behind the menu
-G=makeRace(save.level,save.players);state='menu';
+G=makeRace(save.level,1);state='menu';
 requestAnimationFrame(frame);
 // test hooks (harmless in play)
 window.__gr={drawHorse:(...a)=>drawHorse(...a),get state(){return state},get G(){return G},get ball(){return ball},launch:(vx,vy)=>{if(state==='aim')launch(vx,vy)},begin,home,save:()=>save,toScreen:(x,y)=>{const q=P(x,y);return{x:q.x,y:q.y}}};
