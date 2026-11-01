@@ -2,7 +2,7 @@
 (()=>{
 const COLORS=[{n:'Red',c:'#e53935',d:'#a91f1c',l:'#ff8a80'},{n:'Yellow',c:'#fbc02d',d:'#c08a00',l:'#fff176'},{n:'Blue',c:'#1e88e5',d:'#115a9e',l:'#90caf9'},{n:'Green',c:'#43a047',d:'#2a6e2d',l:'#a5d6a7'}];
 const BALLC=['#ff3b30','#ffcc00','#2f80ff','#34c759'];
-const AW=100,AL=260,BR=6.5,START={x:50,y:238},TRACK=16;
+const AW=100,AL=260,BR=6.5,START={x:50,y:238},TRACK=24;
 const SPEED=Math.max(1,Math.min(10,+(new URLSearchParams(location.search).get('speed')||1)));
 const cv=document.getElementById('c');let cx=cv.getContext('2d');let shake=0;
 const $=id=>document.getElementById(id);
@@ -68,7 +68,7 @@ function makeRace(level,players){
  const pegs=[];
  const themes=[['#c98d4f','#e0a96d'],['#b77b45','#d89c62'],['#cf9a5d','#ecc08a'],['#a8703f','#d0955a']];
  const humans=Math.max(1,Math.min(4,players));
- return{level,g,gx,holes,pegs,theme:themes[(level-1)%themes.length],cpuSkill:Math.min(.92,.45+L*.06),
+ return{level,g,gx,holes,pegs,theme:themes[(level-1)%themes.length],cpuSkill:Math.min(.6,.3+L*.03),
   horses:COLORS.map((c,i)=>({i,pos:0,shown:0,human:i<humans,finished:0,ga:null})),turn:0,humans,finishOrder:[]};
 }
 // ---------- state ----------
@@ -109,7 +109,7 @@ function launch(vx,vy){
 }
 // simple, fair CPU roll for solo races: mostly small gallops, sometimes a miss, rarely a big one
 function cpuQuickRoll(h){const L=Math.min(G.level,8),r=Math.random();
- const w=[.44-L*.016,.3,.19+L*.004,.11+L*.004,.06+L*.004];let a=0,v=0;const tot=w.reduce((x,y)=>x+y);for(let k=0;k<5;k++){a+=w[k]/tot;if(r<a){v=k;break}}
+ const w=[.55,.3,.1,.04,.01]; /* gentle, flat: Molly should usually win */let a=0,v=0;const tot=w.reduce((x,y)=>x+y);for(let k=0;k<5;k++){a+=w[k]/tot;if(r<a){v=k;break}}
  if(v>0&&h.pos<TRACK)startGallop(h,v)}
 function startGallop(h,n){if(h.ga){const add=Math.min(n,TRACK-(h.ga.from+h.ga.n));if(add>0){h.ga.n+=add;SFX.ding(add);effects.push({type:'plus',n:add,i:h.i,t:0})}return}
  n=Math.min(n,TRACK-h.pos);if(n<=0)return;h.ga={from:h.pos,n,t:0,k:0};SFX.ding(n);effects.push({type:'plus',n,i:h.i,t:0})}
@@ -153,7 +153,7 @@ function missed(){SFX.rollStop();SFX.miss();ball.on=false;state='returning';anim
 // ---------- update ----------
 function update(dt){
  time+=dt;
- if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=2.8+Math.random()*1.2}}if(shake>0)shake=Math.max(0,shake-dt);
+ if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=3.4+Math.random()*1.4}}if(shake>0)shake=Math.max(0,shake-dt);
  if(state==='rolling'){const pd=dt*1.15,n=Math.ceil(pd/(1/240));for(let i=0;i<n&&state==='rolling';i++)step(pd/n)} // brisker, less floaty roll (same paths)
  else if(state==='dropping'){anim.t+=dt;if(anim.t>.32){SFX.rattle();state='returning';anim={type:'trough',t:0,v:anim.h.v,y:anim.h.y}}}
  else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.65:.4;if(anim.t>=dur){
@@ -193,7 +193,7 @@ function rg(x,y,r,c0,c1,c2){const g=cx.createRadialGradient(x-r*.35,y-r*.45,r*.0
 function blob(x,y,rx,ry,rot,fill){cx.fillStyle=fill;cx.beginPath();cx.ellipse(x,y,rx,ry,rot||0,0,7);cx.fill()}
 // chunky shaded cartoon horse with a friendly jockey; origin = ground under the belly
 function drawHorse(x,y,s,i,phase,glow){
- const c=COLORS[i];cx.save();cx.translate(x,y);cx.scale(s,s);
+ const uni=i===0,c=uni?{c:'#f78fc4',d:'#c2507f',l:'#ffd3ea'}:COLORS[i],mc=uni?'#9c6ade':c.d;cx.save();cx.translate(x,y);cx.scale(s,s);
  if(glow){const g=cx.createRadialGradient(0,-10,4,0,-10,48);g.addColorStop(0,'rgba(255,240,140,.7)');g.addColorStop(1,'rgba(255,240,140,0)');cx.fillStyle=g;cx.fillRect(-50,-60,100,90)}
  blob(2,24,30,6,0,'rgba(40,60,20,.28)');
  const leg=Math.sin(phase),bob=Math.abs(Math.sin(phase))*3.2;
@@ -203,17 +203,18 @@ function drawHorse(x,y,s,i,phase,glow){
   blob(fx+1,fy+2,5,3.4,0,far?'#3b2a20':'#55402f')};
  // far legs, tail
  legD(-13,-leg*.7,1);legD(13,leg*.7,1);
- cx.fillStyle=c.d;cx.beginPath();cx.moveTo(-20,-6);cx.bezierCurveTo(-36,-8,-38+leg*3,10,-30,16);cx.bezierCurveTo(-30,6,-26,2,-20,2);cx.fill();
+ cx.fillStyle=mc;cx.beginPath();cx.moveTo(-20,-6);cx.bezierCurveTo(-36,-8,-38+leg*3,10,-30,16);cx.bezierCurveTo(-30,6,-26,2,-20,2);cx.fill();
  // body
  blob(0,-1,26,16,0,rg(0,-1,26,c.l,c.c,c.d));
  // mane behind the neck
- for(let k=0;k<4;k++)blob(10+k*3,-9-k*5.5,3.6,4.4,0,c.d);
+ for(let k=0;k<4;k++)blob(10+k*3,-9-k*5.5,uni?4.6:3.6,uni?5.4:4.4,0,uni?['#9c6ade','#5fb7f5','#ffd54f','#9c6ade'][k]:c.d);
  // neck + head
  cx.fillStyle=rg(18,-14,14,c.l,c.c,c.d);cx.beginPath();cx.moveTo(10,-8);cx.quadraticCurveTo(16,-26,24,-28);cx.lineTo(30,-20);cx.quadraticCurveTo(24,-6,20,2);cx.closePath();cx.fill();
  blob(28,-25,11,8.5,.3,rg(28,-25,11,c.l,c.c,c.d));
  blob(35,-21,7,5.6,.3,rg(35,-21,7,'#fff1e6','#f8cfb2','#d9a585'));blob(37,-21,1.2,1,0,'#a0705a');
  blob(26.5,-28,3.2,3.6,0,'#fff');blob(27.2,-27.6,2.2,2.6,0,'#2b1d16');blob(26.4,-28.6,.9,.9,0,'#fff');
  cx.fillStyle=c.d;cx.beginPath();cx.moveTo(20,-31);cx.quadraticCurveTo(20,-41,24,-40);cx.quadraticCurveTo(25,-35,24,-31);cx.fill();
+ if(uni){cx.fillStyle=rg(31,-38,8,'#fff8c4','#ffd54f','#d4a017');cx.beginPath();cx.moveTo(27,-32);cx.lineTo(36,-49);cx.lineTo(32.5,-31);cx.closePath();cx.fill();cx.strokeStyle='#c99a12';cx.lineWidth=1;cx.beginPath();cx.moveTo(29,-36);cx.lineTo(33,-37);cx.moveTo(31,-41);cx.lineTo(34,-42);cx.stroke()}
  // near legs
  legD(-9,leg*.7,0);legD(17,-leg*.7,0);
  blob(0,-1,25,15,0,rg(0,-1,25,c.l,c.c,c.d));
@@ -277,7 +278,7 @@ function drawTrack(){
   blob(bx,by+2,br,br,0,'rgba(0,0,0,.15)');blob(bx,by,br,br,0,rg(bx,by,br,COLORS[i].l,COLORS[i].c,COLORS[i].d));
   cx.fillStyle='#fff';cx.font=`900 ${br*.78}px system-ui,sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText(h.human?(G.humans===1?'YOU':'P'+(i+1)):'🤖',bx,by+1)}
  for(let i=0;i<4;i++){const q=laneGeo(i),h=G.horses[i],moving=!!h.ga;
-  const x=q.sx+(q.fx-q.sx)*h.shown/TRACK,y=q.y+q.h*.7,hs=Math.min(q.h/50,(q.fx-q.sx)/TRACK/22,2.4);
+  const x=q.sx+(q.fx-q.sx)*h.shown/TRACK,y=q.y+q.h*.7,hs=Math.min(q.h/50,(q.fx-q.sx)/16/22,2.4);
   if(moving){cx.fillStyle='rgba(120,70,30,.3)';for(let k=h.ga?h.ga.from:0;h.ga&&k<h.shown-.2;k+=.5){const px=q.sx+(q.fx-q.sx)*k/TRACK;cx.beginPath();cx.ellipse(px,y+2,3*q.k,1.8*q.k,0,0,7);cx.fill()}}
   drawHorse(x,y-(moving?Math.abs(Math.sin(time*7+i))*3.2*hs:0),hs,i,moving?time*14:0,G.turn===i&&state!=='finish'&&!SOLO())}
  for(const e of effects)if(e.type==='cpuball'&&e.t<1.2){const q=laneGeo(e.i),bx=q.lm+q.h*.45+q.h*.55,by=q.y+q.h*.5-Math.abs(Math.sin(e.t*7))*q.h*.25*(1-e.t/1.2),r=q.h*.14;
@@ -382,7 +383,7 @@ function drawParallax(){const w=W(),h=H(),bx=(typeof ball!=='undefined'&&ball?ba
   cx.fillStyle=['#ffeb3b','#fff','#ffb74d','#4fc3f7','#fff','#aed581'][k];cx.globalAlpha=.55;cx.beginPath();cx.arc(x,y,3+k%2,0,7);cx.fill()}cx.globalAlpha=1}
 function frame(now){const dt=Math.min(.05,(now-lastT)/1000)*SPEED;lastT=now;
  if(G&&state!=='menu')update(dt);else time+=dt;
- if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=2.8+Math.random()*1.2}}
+ if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=3.4+Math.random()*1.4}}
  cx.clearRect(0,0,W(),H());
  const bg=cx.createLinearGradient(0,0,0,H());bg.addColorStop(0,'#bfe9ff');bg.addColorStop(.35,'#9be08a');bg.addColorStop(1,'#6fc25d');cx.fillStyle=bg;cx.fillRect(0,0,W(),H());
  if(G)drawParallax();
