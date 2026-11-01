@@ -1,6 +1,6 @@
 'use strict';
 (()=>{
-const COLORS=[{n:'Red',c:'#e53935',d:'#a91f1c',l:'#ff8a80'},{n:'Yellow',c:'#fbc02d',d:'#c08a00',l:'#fff176'},{n:'Blue',c:'#1e88e5',d:'#115a9e',l:'#90caf9'},{n:'Green',c:'#43a047',d:'#2a6e2d',l:'#a5d6a7'}];
+const COLORS=[{n:'Pink',c:'#ec6fae',d:'#b8457e',l:'#ffc4e1'},{n:'Yellow',c:'#fbc02d',d:'#c08a00',l:'#fff176'},{n:'Blue',c:'#1e88e5',d:'#115a9e',l:'#90caf9'},{n:'Green',c:'#43a047',d:'#2a6e2d',l:'#a5d6a7'}];
 const BALLC=['#ff3b30','#ffcc00','#2f80ff','#34c759'];
 const AW=100,AL=260,BR=6.5,START={x:50,y:238},TRACK=24;
 const SPEED=Math.max(1,Math.min(10,+(new URLSearchParams(location.search).get('speed')||1)));
@@ -278,7 +278,7 @@ function drawTrack(){
   blob(bx,by+2,br,br,0,'rgba(0,0,0,.15)');blob(bx,by,br,br,0,rg(bx,by,br,COLORS[i].l,COLORS[i].c,COLORS[i].d));
   cx.fillStyle='#fff';cx.font=`900 ${br*.78}px system-ui,sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText(h.human?(G.humans===1?'YOU':'P'+(i+1)):'🤖',bx,by+1)}
  for(let i=0;i<4;i++){const q=laneGeo(i),h=G.horses[i],moving=!!h.ga;
-  const x=q.sx+(q.fx-q.sx)*h.shown/TRACK,y=q.y+q.h*.7,hs=Math.min(q.h/50,(q.fx-q.sx)/16/22,2.4);
+  const x=q.sx+(q.fx-q.sx)*h.shown/TRACK,y=q.y+q.h/2+11*Math.min(q.h/50,(q.fx-q.sx)/16/22,2.4),hs=Math.min(q.h/50,(q.fx-q.sx)/16/22,2.4);
   if(moving){cx.fillStyle='rgba(120,70,30,.3)';for(let k=h.ga?h.ga.from:0;h.ga&&k<h.shown-.2;k+=.5){const px=q.sx+(q.fx-q.sx)*k/TRACK;cx.beginPath();cx.ellipse(px,y+2,3*q.k,1.8*q.k,0,0,7);cx.fill()}}
   drawHorse(x,y-(moving?Math.abs(Math.sin(time*7+i))*3.2*hs:0),hs,i,moving?time*14:0,G.turn===i&&state!=='finish'&&!SOLO())}
  for(const e of effects)if(e.type==='cpuball'&&e.t<1.2){const q=laneGeo(e.i),bx=q.lm+q.h*.45+q.h*.55,by=q.y+q.h*.5-Math.abs(Math.sin(e.t*7))*q.h*.25*(1-e.t/1.2),r=q.h*.14;
