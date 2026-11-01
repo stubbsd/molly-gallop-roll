@@ -354,7 +354,7 @@ function alleyStatic(){
   cx.fillStyle=hg;cx.beginPath();cx.ellipse(c.x,c.y+ry*.5,rx*.97,ry*.95,0,0,7);cx.fill();
   cx.strokeStyle='rgba(0,0,0,.55)';cx.lineWidth=Math.max(2,ry*.5);cx.beginPath();cx.ellipse(c.x,c.y+ry*.12,rx,ry,0,Math.PI*1.05,Math.PI*1.95);cx.stroke();cx.restore();
   cx.strokeStyle='rgba(255,236,200,.7)';cx.lineWidth=Math.max(1.5,ry*.16);cx.beginPath();cx.ellipse(c.x,c.y+ry*.04,rx*1.02,ry*1.04,0,Math.PI*.12,Math.PI*.88);cx.stroke()
-  cx.strokeStyle=['#fbc02d','#e53935','#43a047','#1e88e5'][(h.v-1)%4];cx.lineWidth=Math.max(2,rx*.16);cx.beginPath();cx.ellipse(c.x,c.y,rx*1.1,ry*1.1,0,0,7);cx.stroke();
+  {const NE=['#ffef00','#ff2a4f','#39ff14','#00b3ff'][(h.v-1)%4];cx.save();cx.shadowColor=NE;cx.shadowBlur=Math.max(6,rx*.5);cx.strokeStyle=NE;cx.lineWidth=Math.max(2,rx*.15);for(let k=0;k<2;k++){cx.beginPath();cx.ellipse(c.x,c.y,rx*1.1,ry*1.1,0,0,7);cx.stroke()}cx.shadowBlur=0;cx.strokeStyle='rgba(255,255,255,.75)';cx.lineWidth=Math.max(.8,rx*.045);cx.beginPath();cx.ellipse(c.x,c.y,rx*1.1,ry*1.1,0,0,7);cx.stroke();cx.restore()}
   }
 }
 function drawStar(x,y,r,t){cx.save();cx.translate(x,y);cx.rotate(Math.sin(t*2)*.15);const g=cx.createRadialGradient(0,-r*.3,0,0,0,r);g.addColorStop(0,'#fffde7');g.addColorStop(.5,'#ffd54f');g.addColorStop(1,'#f9a825');cx.fillStyle=g;cx.beginPath();for(let p=0;p<10;p++){const rr=p%2?r*.45:r,a=-Math.PI/2+p*Math.PI/5;cx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr)}cx.closePath();cx.fill();cx.strokeStyle='#e08e00';cx.lineWidth=Math.max(1,r*.08);cx.stroke();cx.restore()}
@@ -400,7 +400,7 @@ function drawFinish(){
  const base=h*.68,pw=Math.min(w*.26,h*.22),hts=[h*.2,h*.14,h*.1],xs=[w/2,w/2-pw,w/2+pw];
  [1,2,0].forEach(p=>{const x=xs[p],ph=hts[p];rr(x-pw/2+4,base-ph,pw-8,ph,10);cx.fillStyle=['#ffd23f','#cfd8dc','#e0a96d'][p];cx.fill();
   cx.fillStyle='#fff';cx.font=`900 ${ph*.5}px system-ui`;cx.fillText(p+1,x,base-ph/2);
-  drawHorse(x,base-ph-pw*.24,pw/75,G.podium[p],time*6,p===0);if(p===0&&!(G.podium[0]===0&&HAT()===3)){const s2=pw/75;drawCrown(x+25*s2,base-ph-pw*.24-40*s2+Math.sin(time*3)*2,s2*1.3)}});
+  drawHorse(x,base-ph-pw*.24,pw/75,G.podium[p],time*6,p===0);});
  const fourth=G.podium[3];drawHorse(w/2+pw*1.9>w-30?w-40:w/2+pw*1.9,base-10,pw/120,fourth,time*6,false);
  // confetti
  for(let i=0;i<60;i++){const x=(i*97+time*40*(1+i%3))%w,y=(i*53+time*90*(1+i%4))%h;cx.fillStyle=cols[i%6];cx.fillRect(x,y,6,10)}
