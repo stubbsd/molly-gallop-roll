@@ -329,7 +329,8 @@ function alleyStatic(){
   cx.save();cx.beginPath();cx.ellipse(c.x,c.y,rx,ry,0,0,7);cx.clip();
   const wg2=cx.createLinearGradient(0,c.y-ry,0,c.y+ry);wg2.addColorStop(0,'#3a2412');wg2.addColorStop(.5,'#140b05');wg2.addColorStop(1,'#000');cx.fillStyle=wg2;cx.fillRect(c.x-rx,c.y-ry,rx*2,ry*2);
   const hg=cx.createRadialGradient(c.x,c.y+ry*.55,0,c.x,c.y+ry*.55,rx);hg.addColorStop(0,'#000');hg.addColorStop(.8,'#050505');hg.addColorStop(1,'rgba(0,0,0,.9)');
-  cx.fillStyle=hg;cx.beginPath();cx.ellipse(c.x,c.y+ry*.5,rx*.97,ry*.95,0,0,7);cx.fill();cx.restore()}
+  cx.fillStyle=hg;cx.beginPath();cx.ellipse(c.x,c.y+ry*.5,rx*.97,ry*.95,0,0,7);cx.fill();cx.restore()
+  cx.strokeStyle=['#fbc02d','#e53935','#43a047','#1e88e5'][(h.v-1)%4];cx.lineWidth=Math.max(2,rx*.16);cx.beginPath();cx.ellipse(c.x,c.y,rx*1.1,ry*1.1,0,0,7);cx.stroke()}
 }
 function drawAlley(){
  const S=L.S;cached('alley',()=>alleyStatic());
