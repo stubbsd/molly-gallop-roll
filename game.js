@@ -1,6 +1,6 @@
 'use strict';
 (()=>{
-const COLORS=[{n:'Pink',c:'#ec6fae',d:'#b8457e',l:'#ffc4e1'},{n:'Yellow',c:'#fbc02d',d:'#c08a00',l:'#fff176'},{n:'Blue',c:'#1e88e5',d:'#115a9e',l:'#90caf9'},{n:'Green',c:'#43a047',d:'#2a6e2d',l:'#a5d6a7'}];
+const COLORS=[{n:'Pink',c:'#ff2d95',d:'#c2006b',l:'#ff7ac0'},{n:'Yellow',c:'#ffc400',d:'#c78600',l:'#ffe14d'},{n:'Blue',c:'#0a6cff',d:'#0044b0',l:'#5ea8ff'},{n:'Green',c:'#14a81f',d:'#0a6a12',l:'#5fd46a'}];
 const BALLC=['#ff3b30','#ffcc00','#2f80ff','#34c759'];
 const AW=100,AL=260,BR=6.5,START={x:50,y:238};let TRACK=24;
 const SPEED=Math.max(1,Math.min(10,+(new URLSearchParams(location.search).get('speed')||1)));
@@ -8,15 +8,15 @@ const cv=document.getElementById('c');let cx=cv.getContext('2d');let shake=0;
 const $=id=>document.getElementById(id);
 // ---------- storage ----------
 const SKEY='mollyGallopRoll.v1';
-const STABLE=[{n:'Sparkle',w:0,c:'#f78fc4',d:'#c2507f',l:'#ffd3ea',m:'#9c6ade',uni:1},{n:'Sunny',w:1,c:'#f6b93b',d:'#b9770e',l:'#ffe08a',m:'#8d5524'},
- {n:'Minty',w:2,c:'#5fd3a6',d:'#2a9a73',l:'#b8f2dc',m:'#1f6e52'},{n:'Skye',w:3,c:'#5fb7f5',d:'#2b7cc0',l:'#bfe3ff',m:'#1d4f80'},
- {n:'Tango',w:4,c:'#ff9a3c',d:'#c8641a',l:'#ffd1a3',m:'#7a3a10'},{n:'Pepper',w:5,c:'#b0bec5',d:'#78909c',l:'#eceff1',m:'#455a64'},
- {n:'Lilac',w:6,c:'#b39ddb',d:'#7e57c2',l:'#e3d7ff',m:'#5e35b1',uni:1},{n:'Starlight',w:8,c:'#f5f5f5',d:'#b0bec5',l:'#ffffff',m:'#ffd54f',uni:1},
- {n:'Breeze',w:2,c:'#e8f4ff',d:'#8fb3d9',l:'#ffffff',m:'#7fc8f8',kind:'peg'},{n:'Ember',w:4,c:'#ff8a3d',d:'#d0531b',l:'#ffd08a',m:'#ffd54f',kind:'dragon'},
- {n:'Twilight',w:7,c:'#7e8cf0',d:'#4a55b8',l:'#c6ccff',m:'#ffd54f',kind:'peg'},{n:'Moss',w:9,c:'#6fd36a',d:'#2f8f3a',l:'#c8f5b0',m:'#ffb74d',kind:'dragon'},
- {n:'Coco',w:3,c:'#b9835a',d:'#7d5233',l:'#e2c09c',m:'#5d3a20',kind:'capy'},{n:'Pebble',w:5,c:'#7cd67a',d:'#3c9a48',l:'#c9f5b8',m:'#ffb300',kind:'dino'},
- {n:'Mango',w:6,c:'#f2b45a',d:'#b97a24',l:'#ffe0a8',m:'#7a4a12',kind:'capy'},{n:'Bloop',w:8,c:'#5ec4f0',d:'#2a86b8',l:'#c4ecff',m:'#ffd54f',kind:'dino'},
- {n:'Bluebell',w:11,c:'#8fb8e8',d:'#4f7fb8',l:'#d6e8ff',m:'#2f4f7a',kind:'capy'},{n:'Zuzu',w:12,c:'#a68cf0',d:'#6a4fc0',l:'#ddd0ff',m:'#4dd0a8',kind:'dino'}];
+const STABLE=[{n:'Sparkle',w:0,c:'#ff3fa4',d:'#c4126f',l:'#ff8fcb',m:'#7b2fe0',uni:1},{n:'Sunny',w:1,c:'#ffb300',d:'#c77800',l:'#ffd54f',m:'#7a3e00'},
+ {n:'Minty',w:2,c:'#00c27a',d:'#007a4c',l:'#4be0a8',m:'#004d30'},{n:'Skye',w:3,c:'#1e90ff',d:'#0058c4',l:'#6bb8ff',m:'#0a2f73'},
+ {n:'Tango',w:4,c:'#ff6d00',d:'#c43c00',l:'#ffa040',m:'#6a2400'},{n:'Pepper',w:5,c:'#607d8b',d:'#37474f',l:'#90a4ae',m:'#1c262b'},
+ {n:'Lilac',w:6,c:'#8e44ec',d:'#5a1fb0',l:'#b98cff',m:'#3a0f80',uni:1},{n:'Starlight',w:8,c:'#ffffff',d:'#9aa8b8',l:'#ffffff',m:'#ffb300',uni:1},
+ {n:'Breeze',w:2,c:'#33c4ff',d:'#0079c2',l:'#a6e6ff',m:'#0050a0',kind:'peg'},{n:'Ember',w:4,c:'#ff5a1f',d:'#c22a00',l:'#ff9a5c',m:'#ffc400',kind:'dragon'},
+ {n:'Twilight',w:7,c:'#3f51ff',d:'#1a28b8',l:'#8a96ff',m:'#ffc400',kind:'peg'},{n:'Moss',w:9,c:'#2fbf2a',d:'#157a14',l:'#7ae070',m:'#ff9800',kind:'dragon'},
+ {n:'Coco',w:3,c:'#a0622d',d:'#653812',l:'#cf9058',m:'#3d200a',kind:'capy'},{n:'Pebble',w:5,c:'#3fcf3a',d:'#1d8a22',l:'#8ef07f',m:'#ff9800',kind:'dino'},
+ {n:'Mango',w:6,c:'#ff9f00',d:'#c26a00',l:'#ffcc4d',m:'#6a3500',kind:'capy'},{n:'Bloop',w:8,c:'#00a8f0',d:'#006aa8',l:'#5fd0ff',m:'#ffc400',kind:'dino'},
+ {n:'Bluebell',w:11,c:'#3d7cf0',d:'#1b4cb0',l:'#86b0ff',m:'#0f2860',kind:'capy'},{n:'Zuzu',w:12,c:'#7a3cf0',d:'#4a18b0',l:'#b090ff',m:'#00c99a',kind:'dino'}];
 const STABLE_ORDER=STABLE.map((p,k)=>k).sort((a,b)=>STABLE[a].w-STABLE[b].w||a-b);
 const HATS=[{n:'none',w:0},{n:'party',w:1},{n:'cowboy',w:2},{n:'crown',w:4},{n:'tophat',w:6},{n:'wizard',w:3},{n:'flowers',w:5},{n:'propeller',w:7},{n:'chef',w:8},{n:'bunny',w:10},{n:'cupcake',w:12},{n:'tiara',w:3},{n:'goldtiara',w:9},{n:'startiara',w:11}];
 const CAPES=[{n:'none',w:0},{n:'red',w:2,c:'#e53935',d:'#a31f1c',l:'#ff8a80'},{n:'starry',w:4,c:'#1e5bb8',d:'#123c80',l:'#64b5f6',st:1},{n:'purple',w:6,c:'#8e24aa',d:'#5e1675',l:'#ce93d8',st:1},{n:'gold',w:9,c:'#ffb300',d:'#c77c00',l:'#ffe082'},{n:'leaf',w:11,c:'#43a047',d:'#2e7031',l:'#a5d6a7',dot:1}];
@@ -338,11 +338,11 @@ function trackStatic(){
  for(const [fx,fy,r] of [[.18,.35,16],[.5,.25,13],[.8,.4,18]]){const X=W()*fx,Y=t.y*fy;cx.fillStyle='rgba(255,255,255,.92)';[[0,0,1],[-.9,.25,.7],[.9,.25,.75],[.35,-.35,.7]].forEach(([a,b,m])=>{cx.beginPath();cx.arc(X+a*r,Y+b*r,r*m,0,7);cx.fill()})}
  cx.fillStyle=bgT()[7];cx.beginPath();cx.moveTo(0,t.y+12);for(let x=0;x<=W();x+=20)cx.lineTo(x,t.y-4-Math.sin(x/90)*8-Math.sin(x/37)*3);cx.lineTo(W(),t.y+12);cx.fill();
  // track bed with front edge thickness
- const g3=laneGeo(3);cx.fillStyle='#e8dcc8';cx.beginPath();cx.moveTo(laneGeo(0).l0-4,t.y+2);cx.lineTo(laneGeo(0).r0+4,t.y+2);cx.lineTo(g3.r1+4,g3.y+g3.h+4);cx.lineTo(g3.l1-4,g3.y+g3.h+4);cx.fill();
- cx.fillStyle='#c9b79a';cx.beginPath();cx.moveTo(g3.l1-4,g3.y+g3.h+4);cx.lineTo(g3.r1+4,g3.y+g3.h+4);cx.lineTo(g3.r1+2,g3.y+g3.h+10);cx.lineTo(g3.l1-2,g3.y+g3.h+10);cx.fill();
+ const g3=laneGeo(3);cx.fillStyle='#e6c88f';cx.beginPath();cx.moveTo(laneGeo(0).l0-4,t.y+2);cx.lineTo(laneGeo(0).r0+4,t.y+2);cx.lineTo(g3.r1+4,g3.y+g3.h+4);cx.lineTo(g3.l1-4,g3.y+g3.h+4);cx.fill();
+ cx.fillStyle='#b88a4a';cx.beginPath();cx.moveTo(g3.l1-4,g3.y+g3.h+4);cx.lineTo(g3.r1+4,g3.y+g3.h+4);cx.lineTo(g3.r1+2,g3.y+g3.h+10);cx.lineTo(g3.l1-2,g3.y+g3.h+10);cx.fill();
  for(let i=0;i<4;i++){const q=laneGeo(i),h=G.horses[i];
   cx.beginPath();cx.moveTo(q.l0,q.y);cx.lineTo(q.r0,q.y);cx.lineTo(q.r1,q.y+q.h);cx.lineTo(q.l1,q.y+q.h);cx.closePath();
-  const lg=cx.createLinearGradient(0,q.y,0,q.y+q.h);lg.addColorStop(0,COLORS[i].l);lg.addColorStop(.6,mix(COLORS[i].l,COLORS[i].c,.45));lg.addColorStop(1,mix(COLORS[i].l,COLORS[i].c,.7));cx.fillStyle=lg;cx.fill();
+  const lg=cx.createLinearGradient(0,q.y,0,q.y+q.h);lg.addColorStop(0,mix(COLORS[i].l,COLORS[i].c,.45));lg.addColorStop(.6,COLORS[i].c);lg.addColorStop(1,mix(COLORS[i].c,COLORS[i].d,.4));cx.fillStyle=lg;cx.fill();
   // soft turf stripes for depth
   cx.save();cx.clip();cx.fillStyle='rgba(255,255,255,.10)';for(let k=0;k<TRACK;k+=2){const x0=q.sx+(q.fx-q.sx)*k/TRACK,x1=q.sx+(q.fx-q.sx)*(k+1)/TRACK;cx.fillRect(x0,q.y,x1-x0,q.h)}cx.restore();
   // step dots
