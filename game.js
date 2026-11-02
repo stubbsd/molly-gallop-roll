@@ -461,11 +461,6 @@ function alleyFx(){const T=G.theme,D=FXP[T.pat];if(!D)return;const S=L.S;cx.save
  D.F.forEach((p,i)=>{const q=P(15+i*35,-14),r=14*S*q.k,b=Math.sin(time*2+i)*r*.12;shpAt(p[0],q.x,q.y-r*.6+b,r,1,p[1]||'#fff',p[0]==='wand'?Math.sin(time*2)*.3:0)});
  // rail props, bobbing
  for(let i=0;i<4;i++)for(const sd of[0,1]){const p=D.L[(i+sd*2)%4],y=40+i*58+sd*29,q=P(sd?126:-16,y),r=11*S*q.k,b=Math.sin(time*2.2+i+sd*1.7)*r*.1;cx.globalAlpha=1;shpAt(p[0],q.x,q.y-r*.5+b,r,1,p[1]||'#fff',p[0]==='swirl'||p[0]==='mol'?time*1.5:p[0]==='fish'?(sd?Math.PI:0)*0:0)}
- // drifting particles on the board, kept away from holes
- for(let i=0;i<22;i++){const sp=.5+((i*37)%10)/12;let y=((i*53)%AL+(D.up?-1:D.down?1:0)*time*18*sp)%AL;if(y<0)y+=AL;const x=8+((i*61)%84)+Math.sin(time*1.3+i)*3;
-  if(G.holes.some(h=>Math.hypot(h.x-x,h.y-y)<h.r+9))continue;const q=P(x,y),tw=.5+.5*Math.sin(time*4+i*1.9);cx.globalAlpha=.35+.45*tw;shpAt(D.pt,q.x,q.y,(1+tw*.6)*S*q.k*(D.pt==='bubble'?1.4:1.6),1,D.pc,D.pt==='feather'?Math.sin(time+i):time*.5)}
- // shimmer sweep
- {const ph=(time*.25)%1.6-.3,yy=AL*ph;const a=P(0,yy),b=P(0,yy+30);const g=cx.createLinearGradient(0,a.y,0,b.y);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,'rgba(255,255,255,.14)');g.addColorStop(1,'rgba(255,255,255,0)');cx.globalAlpha=1;cx.fillStyle=g;quad(0,yy,100,yy+30);cx.fill()}
  cx.restore()}
 function alleyStatic(){
  const S=L.S,yb=AL+40;   // board runs off the bottom edge, towards the player
