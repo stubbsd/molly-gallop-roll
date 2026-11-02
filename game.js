@@ -342,11 +342,13 @@ function trackStatic(){
  cx.fillStyle='#9f8765';cx.beginPath();cx.moveTo(g3.l1-4,g3.y+g3.h+4);cx.lineTo(g3.r1+4,g3.y+g3.h+4);cx.lineTo(g3.r1+2,g3.y+g3.h+10);cx.lineTo(g3.l1-2,g3.y+g3.h+10);cx.fill();
  for(let i=0;i<4;i++){const q=laneGeo(i),h=G.horses[i];
   cx.beginPath();cx.moveTo(q.l0,q.y);cx.lineTo(q.r0,q.y);cx.lineTo(q.r1,q.y+q.h);cx.lineTo(q.l1,q.y+q.h);cx.closePath();
-  const lg=cx.createLinearGradient(0,q.y,0,q.y+q.h);lg.addColorStop(0,mix(COLORS[i].l,COLORS[i].c,.45));lg.addColorStop(.6,COLORS[i].c);lg.addColorStop(1,mix(COLORS[i].c,COLORS[i].d,.4));cx.fillStyle=lg;cx.fill();
+  const lg=cx.createLinearGradient(0,q.y,0,q.y+q.h);const nb=i%2?['#c9c1b1','#b9b09e']:['#d0c8b9','#c0b7a6'];lg.addColorStop(0,nb[0]);lg.addColorStop(1,nb[1]);cx.fillStyle=lg;cx.fill();
   // soft turf stripes for depth
   cx.save();cx.clip();cx.fillStyle='rgba(255,255,255,.10)';for(let k=0;k<TRACK;k+=2){const x0=q.sx+(q.fx-q.sx)*k/TRACK,x1=q.sx+(q.fx-q.sx)*(k+1)/TRACK;cx.fillRect(x0,q.y,x1-x0,q.h)}cx.restore();
+  // thin coloured lane edge
+  cx.strokeStyle=COLORS[i].c;cx.lineWidth=Math.max(2,q.h*.06);cx.lineCap='butt';cx.beginPath();cx.moveTo(q.l1+3,q.y+q.h-2);cx.lineTo(q.r1-3,q.y+q.h-2);cx.stroke();
   // step dots
-  cx.fillStyle='rgba(255,255,255,.75)';for(let k=0;k<=TRACK;k++){const x=q.sx+(q.fx-q.sx)*k/TRACK;cx.beginPath();cx.ellipse(x,q.y+q.h-5,2.2*q.k,1.3*q.k,0,0,7);cx.fill()}
+  cx.fillStyle='rgba(110,95,75,.35)';for(let k=0;k<=TRACK;k++){const x=q.sx+(q.fx-q.sx)*k/TRACK;cx.beginPath();cx.ellipse(x,q.y+q.h-5,2.2*q.k,1.3*q.k,0,0,7);cx.fill()}
   if(state!=='finish'&&G.turn===i&&!SOLO()){cx.strokeStyle='rgba(255,210,63,.95)';cx.lineWidth=4;cx.lineJoin='round';cx.beginPath();cx.moveTo(q.l0+2,q.y+2);cx.lineTo(q.r0-2,q.y+2);cx.lineTo(q.r1-2,q.y+q.h-2);cx.lineTo(q.l1+2,q.y+q.h-2);cx.closePath();cx.stroke()}
   // finish (checks, in perspective)
   const n=Math.max(3,Math.round(q.h/9));for(let k=0;k<n;k++)for(let j=0;j<2;j++){const y0=q.y+q.h*k/n,y1=q.y+q.h*(k+1)/n,cw=6*q.k;cx.fillStyle=(k+j)%2?'#333':'#fff';cx.fillRect(q.fx+q.h*.35+j*cw,y0,cw,y1-y0+.5)}
