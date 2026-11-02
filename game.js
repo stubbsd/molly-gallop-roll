@@ -430,6 +430,7 @@ function boardDeco(){const T=G.theme,k=T.pat,yb=AL+40;let sd=7;const R=()=>(sd=(
  else if(k==='uni'){for(let i=0;i<7;i++){cx.globalAlpha=.55;shp('rainbow',R()*88+6,R()*yb,4,'#fff')}for(let i=0;i<9;i++){cx.globalAlpha=.85;shp('cloud',R()*90+5,R()*yb,3,'#ffffff')}for(let i=0;i<6;i++){cx.globalAlpha=.85;shp('horn',R()*90+5,R()*yb,2.8,'#ffc107')}for(let i=0;i<16;i++){cx.globalAlpha=.8;shp('star',R()*94+3,R()*yb,.8+R(),'#fffbe0')}}
  else if(k==='myth'){for(let y=0;y<yb;y+=6)for(let x=(y/6%2)*4;x<=100;x+=8){cx.globalAlpha=.22;shp('scale',x,y,3.6,'#a8f0d0')}const F=['#ff7043','#ffb300','#e53935'];for(let i=0;i<8;i++){cx.globalAlpha=.75;shp('feather',R()*90+5,R()*yb,3,F[i%3],R()*2-1)}for(let i=0;i<4;i++){cx.globalAlpha=.8;shp('wing',R()*90+5,R()*yb,3.4,'#fff')}for(let i=0;i<3;i++){cx.globalAlpha=.85;shp('castle',R()*86+7,R()*yb,3.4,'#ff9800')}}
  else{for(let i=0;i<10;i++){cx.globalAlpha=.25;shp('star',R()*94+3,R()*yb,1.6,T.dc)}}
+ {const D=FXP[k||'wood'];if(D){const M=D.L.concat(D.F);let n=0;for(let y=14;y<yb;y+=34)for(let c=0;c<3;c++){const x=17+c*33+(R()-.5)*8,yy=y+((c+(y/34|0))%2)*15+(R()-.5)*6;if(G.holes.some(h=>Math.hypot(h.x-x,(h.y-yy)*1.3)<h.r+11))continue;if(Math.hypot(x-START.x,yy-START.y)<14)continue;const m=M[n++%M.length];cx.globalAlpha=.45;shp(m[0],x,yy,8,m[1]||'#fff',m[0]==='swirl'||m[0]==='mol'?R()*6:0)}}}
  cx.restore()}
 function railDeco(x0,x1){const k=G.theme.pat,yb=AL+40;cx.save();quad(x0,-8,x1,yb);cx.clip();
  if(k==='candy'){for(let y=-20;y<yb;y+=12){cx.fillStyle='#ffffff';const a=P(x0,y),b=P(x1,y-4),c=P(x1,y+1),d=P(x0,y+5);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.lineTo(c.x,c.y);cx.lineTo(d.x,d.y);cx.fill()}}
@@ -455,12 +456,8 @@ const FXP={wood:{L:[['balloon','#ff3b3b'],['balloon','#2fa8ff'],['balloon','#ffe
  myth:{L:[['dragon','#43a047'],['wing'],['castle','#ff9800'],['dragon','#2fa8ff']],F:[['castle','#ff9800'],['dragon','#e53935'],['castle','#a65cff']],lt:['#ff9800','#ffeb3b'],pt:'feather',pc:'#ff7043',down:1}};
 function alleyFx(){const T=G.theme,D=FXP[T.pat];if(!D)return;const S=L.S;cx.save();
  // chase lights along both rails
- let n=0;for(let y=0;y<AL+30;y+=16){for(const x of[-5,118]){const q=P(x,y),on=((n+((time*6)|0))%3)===0;cx.globalAlpha=on?1:.45;shpAt('bulb',q.x,q.y,1.5*S*q.k,1,D.lt[n%D.lt.length]);n++}}
+ let n=0;for(let y=0;y<AL+30;y+=16){for(const x of[-5,118]){const q=P(x,y),on=((n+((time*6)|0))%3)===0;cx.globalAlpha=on?.55:.25;shpAt('bulb',q.x,q.y,1*S*q.k,1,D.lt[n%D.lt.length]);n++}}
  cx.globalAlpha=1;
- // far-end props
- D.F.forEach((p,i)=>{const q=P(15+i*35,-14),r=14*S*q.k,b=Math.sin(time*2+i)*r*.12;shpAt(p[0],q.x,q.y-r*.6+b,r,1,p[1]||'#fff',p[0]==='wand'?Math.sin(time*2)*.3:0)});
- // rail props, bobbing
- for(let i=0;i<4;i++)for(const sd of[0,1]){const p=D.L[(i+sd*2)%4],y=40+i*58+sd*29,q=P(sd?126:-16,y),r=11*S*q.k,b=Math.sin(time*2.2+i+sd*1.7)*r*.1;cx.globalAlpha=1;shpAt(p[0],q.x,q.y-r*.5+b,r,1,p[1]||'#fff',p[0]==='swirl'||p[0]==='mol'?time*1.5:p[0]==='fish'?(sd?Math.PI:0)*0:0)}
  cx.restore()}
 function alleyStatic(){
  const S=L.S,yb=AL+40;   // board runs off the bottom edge, towards the player
