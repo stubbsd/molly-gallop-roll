@@ -52,12 +52,52 @@ function audio(){if(AC)return AC;try{AC=new (window.AudioContext||window.webkitA
 function unlock(){const a=audio();if(a&&a.state==='suspended')a.resume();if(a)musicStart()}
 function tone(f,t0,dur,type='sine',vol=.2,f2){if(save.muted||!AC)return;const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+dur);g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol,t0+.01);g.gain.exponentialRampToValueAtTime(.001,t0+dur);o.connect(g).connect(AC.destination);o.start(t0);o.stop(t0+dur+.02)}
 function noise(t0,dur,vol,freq,q=1,type='bandpass'){if(save.muted||!AC)return;const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type=type;f.frequency.value=freq;f.Q.value=q;const g=AC.createGain();g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);s.connect(f).connect(g).connect(AC.destination);s.start(t0,Math.random()*.5);s.stop(t0+dur)}
+
+function sfxDest(){if(!AC)return null;if(!SFX._bus){const g=AC.createGain();g.gain.value=1;const c=AC.createDynamicsCompressor();c.threshold.value=-20;c.knee.value=12;c.ratio.value=5;c.attack.value=.003;c.release.value=.16;g.connect(c).connect(AC.destination);SFX._bus=g}return SFX._bus}
+function makeWoodNoise(ctx){const n=ctx.sampleRate,b=ctx.createBuffer(1,n,n),d=b.getChannelData(0);let x=0;for(let i=0;i<n;i++){x=.97*x+(Math.random()*2-1);d[i]=x*.4+(Math.random()*2-1)*.12}return b}
+function woodHit(ctx,dest,t,f,vol,dur){if(!ctx||!dest||vol<=0)return;
+ [[f,1,'sine'],[f*1.74,.42,'triangle'],[f*2.52,.2,'sine'],[f*3.35,.1,'triangle']].forEach(([ff,k,tp])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type=tp;o.frequency.setValueAtTime(ff,t);o.frequency.exponentialRampToValueAtTime(Math.max(35,ff*.84),t+dur);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(Math.max(.0001,vol*k),t+.0035);g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(g).connect(dest);o.start(t);o.stop(t+dur+.03)});
+ const nbuf=woodBufFor(ctx);if(nbuf){const src=ctx.createBufferSource();src.buffer=nbuf;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=Math.min(4000,f*2.1);bp.Q.value=3.5;const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol*.28,t+.002);g.gain.exponentialRampToValueAtTime(.0008,t+Math.min(.06,dur));src.connect(bp).connect(g).connect(dest);src.start(t);src.stop(t+Math.min(.07,dur)+.02)}}
+function synthDrop(ctx,dest,t0,nbuf){
+ woodHit(ctx,dest,t0,1860,.15,.05);woodHit(ctx,dest,t0,680,.11,.07);
+ const t1=t0+.016;woodHit(ctx,dest,t1,88,.26,.24);woodHit(ctx,dest,t1,142,.15,.2);woodHit(ctx,dest,t1,230,.07,.14);
+ if(nbuf){const src=ctx.createBufferSource();src.buffer=nbuf;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=270;bp.Q.value=4.5;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=800;const g=ctx.createGain();g.gain.setValueAtTime(0,t1);g.gain.linearRampToValueAtTime(.11,t1+.008);g.gain.exponentialRampToValueAtTime(.0008,t1+.12);src.connect(bp).connect(lp).connect(g).connect(dest);src.start(t1);src.stop(t1+.14)}
+ woodHit(ctx,dest,t0+.125,1040,.085,.07);woodHit(ctx,dest,t0+.125,250,.075,.11);
+ woodHit(ctx,dest,t0+.22,1180,.038,.06);woodHit(ctx,dest,t0+.22,280,.032,.09);
+}
+function startReturnBody(ctx,dest,nbuf,t0){const src=ctx.createBufferSource();src.buffer=nbuf;src.loop=true;
+ const modes=[[92,2.2,.22],[245,7,.42],[615,8.5,.36],[1260,6,.22]].map(([f,q,g0])=>{const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=f;bp.Q.value=q;const g=ctx.createGain();g.gain.value=0;src.connect(bp).connect(g).connect(dest);return{bp,g,f,g0}});
+ try{src.start(t0||0)}catch(e){src.start()}
+ return{src,modes,lastTick:t0==null?-1:(t0-.01),t0:t0||0};
+}
+function shapeReturn(ret,t,spd,ramp){ret.modes.forEach(m=>{const fn=ramp?'setValueAtTime':'setTargetAtTime';m.bp.frequency[fn](m.f*(.82+spd*.4),t,...(ramp?[]:[.05]));m.g.gain[fn](m.g0*spd*(.3+spd*.75)*.2,t,...(ramp?[]:[.05]))})}
+function tickGap(spd){return.032+.13*(1-spd)*(1-spd)}
+function returnTick(ctx,dest,t,spd){woodHit(ctx,dest,t,820+spd*480,.022+.03*spd,.028)}
+function bakeReturn(ctx,dest,t0,dur,nbuf){const ret=startReturnBody(ctx,dest,nbuf,t0);
+ for(let i=0;i<=48;i++){const u=i/48,t=t0+u*dur,spd=Math.max(.05,1-Math.pow(u,1.4));shapeReturn(ret,t,spd,true)}
+ let t=t0+.02;while(t<t0+dur-.04){const u=Math.min(1,(t-t0)/dur),spd=Math.max(.05,1-Math.pow(u,1.4));returnTick(ctx,dest,t,spd);t+=tickGap(spd)}
+ ret.modes.forEach(m=>{m.g.gain.setValueAtTime(m.g.gain.value||.001,t0+dur);m.g.gain.exponentialRampToValueAtTime(.0008,t0+dur+.12)});
+ try{ret.src.stop(t0+dur+.2)}catch(e){}
+ woodHit(ctx,dest,t0+dur,400,.13,.11);woodHit(ctx,dest,t0+dur,165,.1,.15);
+}
+function woodBufFor(ctx){if(!ctx)return null;if(ctx===AC)return ensureWoodBuf();if(!ctx._woodN)ctx._woodN=makeWoodNoise(ctx);return ctx._woodN}
+function ensureWoodBuf(){if(!AC)return null;if(!SFX._nbuf)SFX._nbuf=makeWoodNoise(AC);return SFX._nbuf}
+
 const SFX={
  rollStart(){if(!AC||save.muted||rollNode)return;rollNode=AC.createBufferSource();rollNode.buffer=noiseBuf;rollNode.loop=true;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=240;f.Q.value=.3;const f2=AC.createBiquadFilter();f2.type='lowpass';f2.frequency.value=320;f2.Q.value=.2;rollGain=AC.createGain();rollGain.gain.value=0;rollNode.connect(f).connect(f2).connect(rollGain).connect(AC.destination);rollNode.start()},
  roll(sp){if(rollGain)rollGain.gain.setTargetAtTime(Math.min(.14,sp/1600),AC.currentTime,.12)},
  rollStop(){if(rollNode){try{rollGain.gain.setTargetAtTime(0,AC.currentTime,.08);rollNode.stop(AC.currentTime+.4)}catch(e){}rollNode=null;rollGain=null}},
  bump(){if(!AC)return;const t=AC.currentTime;tone(220,t,.08,'triangle',.15,140)},
- drop(){if(!AC)return;const t=AC.currentTime;tone(140,t,.12,'sine',.45,55);tone(300,t,.2,'sine',.25,90);for(let i=0;i<5;i++)noise(t+.08+i*.07,.06,.25,1800+Math.random()*900,4)},
+ drop(){if(!AC||save.muted)return;const t=AC.currentTime,dest=sfxDest();if(!dest)return;
+  if(SFX._dropG){try{SFX._dropG.gain.setTargetAtTime(0,t,.01)}catch(e){}}
+  const g=AC.createGain();g.gain.value=1;g.connect(dest);SFX._dropG=g;
+  synthDrop(AC,g,t,ensureWoodBuf())},
+ returnStart(){if(!AC||save.muted)return;SFX.returnStop(true);const dest=sfxDest();if(!dest)return;SFX._ret=startReturnBody(AC,dest,ensureWoodBuf(),AC.currentTime);SFX._retLive=1;shapeReturn(SFX._ret,AC.currentTime,.9)},
+ returnRun(spd){const r=SFX._ret;if(!r||!AC||save.muted)return;const t=AC.currentTime;shapeReturn(r,t,spd);if(r.lastTick<0||t-r.lastTick>=tickGap(spd)){r.lastTick=t;returnTick(AC,sfxDest(),t,spd)}},
+ returnStop(silent){const r=SFX._ret;if(!r||!AC){SFX._ret=null;return}const t=AC.currentTime;r.modes.forEach(m=>{try{m.g.gain.setTargetAtTime(0,t,.06)}catch(e){}});try{r.src.stop(t+.22)}catch(e){}
+  if(!silent&&!save.muted){const dest=sfxDest();if(dest){woodHit(AC,dest,t,400,.13,.11);woodHit(AC,dest,t,165,.1,.15)}}
+  SFX._ret=null},
+ bakeDrop:synthDrop,bakeReturn:bakeReturn,makeWoodNoise:makeWoodNoise,
  rattle(){if(!AC)return;const t=AC.currentTime;for(let i=0;i<7;i++)noise(t+i*.09,.05,.12,900+Math.random()*600,5)},
  clop(i){if(!AC)return;const t=AC.currentTime;noise(t,.05,.35,i%2?1200:900,6);noise(t+.09,.05,.3,i%2?1000:800,6)},
  ding(n){if(!AC)return;const t=AC.currentTime;for(let i=0;i<n;i++)tone(660*Math.pow(1.26,i),t+i*.1,.25,'sine',.15)},
@@ -201,7 +241,7 @@ function sink(h){
  const hv=cur();anim={type:'drop',h,t:0,x:ball.x,y:ball.y};effects.push({type:'sparkle',x:h.x,y:h.y,t:0,seed:Math.random()*6});
  effects.push({type:'ring',x:h.x,y:h.y,t:0,c:['#deb449','#bd5e5e','#52925a','#3f87c6'][(h.v-1)%4]});shake=.18;
 }
-function missed(){SFX.rollStop();SFX.miss();ball.on=false;state='returning';SFX.rollStart();SFX.roll(500);anim={type:'back',t:0,x:ball.x,y:ball.y,v:0}}
+function missed(){SFX.rollStop();SFX.miss();ball.on=false;state='returning';SFX.returnStart();anim={type:'back',t:0,x:ball.x,y:ball.y,v:0}}
 // ---------- update ----------
 function update(dt){
  if(G&&!G.photoDone&&wantPhoto()){G.photo=2.2;G.photoDone=1;G.photoFlash=1}
@@ -211,8 +251,8 @@ function update(dt){
  if(SOLO()&&state!=='finish'&&state!=='menu'&&(neckAndNeck()||(G.photo>0)))SFX.drumStart();else SFX.drumStop();
  if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=cpuBand(h).next}}if(shake>0)shake=Math.max(0,shake-dt);
  if(state==='rolling'){const pd=dt*1.15,n=Math.ceil(pd/(1/240));for(let i=0;i<n&&state==='rolling';i++)step(pd/n)} // brisker, less floaty roll (same paths)
- else if(state==='dropping'){anim.t+=dt;if(anim.t>.32){state='returning';SFX.rollStart();SFX.roll(500);anim={type:'trough',t:0,v:anim.h.v*(anim.h.bonus?2:1),bonus:!!anim.h.bonus,y:anim.h.y}}}
- else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.65:.4;if(anim.t>=dur){SFX.rollStop();
+ else if(state==='dropping'){anim.t+=dt;if(anim.t>.32){state='returning';SFX.returnStart();anim={type:'trough',t:0,v:anim.h.v*(anim.h.bonus?2:1),bonus:!!anim.h.bonus,y:anim.h.y}}}
+ else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.65:.4;SFX.returnRun(Math.max(.05,1-Math.pow(Math.min(1,anim.t/dur),1.4)));if(anim.t>=dur){SFX.returnStop();
    ball={x:START.x,y:START.y,vx:0,vy:0,on:false};
    if(anim.type==='trough'){if(anim.bonus){SFX.ding(4);effects.push({type:'x2',t:0})}gallop(anim.v)}else{nextTurn()} }}
  for(const h of G?G.horses:[]){const g=h.ga;if(!g)continue;g.t+=dt;const per=.52;const k=Math.min(g.n,Math.floor(g.t/per));
@@ -632,7 +672,7 @@ function buildMenu(){save.players=1;if($('cupcount'))$('cupcount').textContent='
  $('stars').textContent='Race '+save.level+'  '+'★'.repeat(Math.min(5,Math.ceil(save.level/2)))}
 function begin(){unlock();$('stable').classList.add('hide');$('stable').classList.remove('on');$('menu').classList.add('hide');$('menu').classList.remove('on');$('end').classList.add('hide');$('end').classList.remove('on');$('home').classList.remove('hide');
  G=makeRace(save.level,1);effects=[];startTurn()}
-function home(){SFX.rollStop();SFX.drumStop();state='menu';G=null;$('end').classList.add('hide');$('menu').classList.remove('hide');$('menu').classList.add('on');$('home').classList.add('hide');buildMenu()}
+function home(){SFX.rollStop();SFX.returnStop(true);SFX.drumStop();state='menu';G=null;$('end').classList.add('hide');$('menu').classList.remove('hide');$('menu').classList.add('on');$('home').classList.add('hide');buildMenu()}
 function portrait(pony,hat,cape){const c=document.createElement('canvas');c.width=160;c.height=130;const g=c.getContext('2d');const real=cx;cx=g;try{
  if(cape!=null){g.translate(95,85);g.scale(3,3);g.translate(8,8);drawCape(cape,0)}else if(pony!=null){PORTRAIT=pony;HATNONE=true;drawHorse(70,92,1.35,0,0,false)}else{g.translate(80,90);g.scale(3.2,3.2);g.translate(-25,36);drawHat(hat)}}finally{cx=real;PORTRAIT=null;HATNONE=false}return c.toDataURL()}
 const _pc={};function pimg(k,pony,hat,cape){return _pc[k]||(_pc[k]=portrait(pony,hat,cape))}
@@ -647,11 +687,11 @@ function closeStable(){$('stable').classList.add('hide');$('stable').classList.r
 function showUnlocks(){const won=G&&G.horses[G.podium[0]].human;$('picker').classList.toggle('hide',!won);$('end').classList.toggle('won',!!won);if(won){const nu=G.newUnlocks||[];buildStable($('endponies'),$('endhats'),nu);if(nu.length){SFX.ding(Math.min(3,nu.length));requestAnimationFrame(()=>{const b=document.querySelector('#picker .tile.new');if(b)b.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})})}}}
 $('stablebtn').onclick=openStable;$('stabledone').onclick=closeStable;
 $('play').onclick=begin;$('next').onclick=begin;$('again').onclick=home;$('home').onclick=home;
-$('mute').onclick=()=>{save.muted=!save.muted;persist();$('mute').textContent=save.muted?'🔇':'🔊';if(save.muted){SFX.rollStop();SFX.drumStop();musicStop()}else{unlock();musicStart()}};
+$('mute').onclick=()=>{save.muted=!save.muted;persist();$('mute').textContent=save.muted?'🔇':'🔊';if(save.muted){SFX.rollStop();SFX.returnStop(true);SFX.drumStop();musicStop()}else{unlock();musicStart()}};
 $('music').onclick=()=>{unlock();save.music=save.music===false;persist();musicIcon();if(save.music)musicStart();else musicStop()};
 function musicIcon(){$('music').classList.toggle('off',save.music===false)}musicIcon();
 window.__music=MUS;$('mute').textContent=save.muted?'🔇':'🔊';
-document.addEventListener('visibilitychange',()=>{if(document.hidden){SFX.rollStop();SFX.drumStop()}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){SFX.rollStop();SFX.returnStop(true);SFX.drumStop()}});
 window.addEventListener('resize',layout);window.addEventListener('orientationchange',()=>setTimeout(layout,200));
 document.addEventListener('gesturestart',e=>e.preventDefault());
 layout();buildMenu();
@@ -660,5 +700,5 @@ G=makeRace(save.level,1);state='menu';
 requestAnimationFrame(frame);
 // test hooks (harmless in play)
 window.__sheet=(c,ponies,hats,ph,capes)=>{const g=c.getContext('2d');const real=cx,sh=save.hat,sw=save.wins,sc=save.cape;cx=g;save.wins=99;try{g.fillStyle='#e3eaf2';g.fillRect(0,0,c.width,c.height);ponies.forEach((p,r)=>hats.forEach((h,k)=>{PORTRAIT=p;save.hat=h;save.cape=capes?capes[k]:0;drawHorse(110+k*260,170+r*250,3.2,0,ph||0,false)}))}finally{cx=real;PORTRAIT=null;save.hat=sh;save.wins=sw;save.cape=sc}};
-window.__gr={drawHorse:(...a)=>drawHorse(...a),get state(){return state},get G(){return G},get ball(){return ball},launch:(vx,vy)=>{if(state==='aim')launch(vx,vy)},begin,home,save:()=>save,win:()=>{G.finishOrder=[0];finishRace()},toScreen:(x,y)=>{const q=P(x,y);return{x:q.x,y:q.y}},lead:()=>G&&G.lead,photo:()=>G&&G.photo,neck:()=>neckAndNeck(),setPack:(a)=>{if(!G)return;a.forEach((p,i)=>{const h=G.horses[i];h.pos=p;h.shown=p;h.ga=null});leadHorse()},setPhoto:()=>{if(!G)return;const t=TRACK;G.horses.forEach((h,i)=>{h.pos=t-1.2-i*.15;h.shown=h.pos;h.ga={from:h.pos,n:t-h.pos,t:0,k:0}});G.photo=0;G.photoDone=0;leadHorse()}};
+window.__sfx=SFX;window.__gr={drawHorse:(...a)=>drawHorse(...a),get state(){return state},get G(){return G},get ball(){return ball},launch:(vx,vy)=>{if(state==='aim')launch(vx,vy)},begin,home,save:()=>save,win:()=>{G.finishOrder=[0];finishRace()},toScreen:(x,y)=>{const q=P(x,y);return{x:q.x,y:q.y}},lead:()=>G&&G.lead,photo:()=>G&&G.photo,neck:()=>neckAndNeck(),setPack:(a)=>{if(!G)return;a.forEach((p,i)=>{const h=G.horses[i];h.pos=p;h.shown=p;h.ga=null});leadHorse()},setPhoto:()=>{if(!G)return;const t=TRACK;G.horses.forEach((h,i)=>{h.pos=t-1.2-i*.15;h.shown=h.pos;h.ga={from:h.pos,n:t-h.pos,t:0,k:0}});G.photo=0;G.photoDone=0;leadHorse()}};
 })();
