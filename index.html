@@ -40,7 +40,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#83b87d;touch-action:n
 .tile.lock img{filter:grayscale(1) brightness(.9);opacity:.35}
 .tile .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:min(10vmin,60px);font-weight:900;color:#fff;text-shadow:0 .5vmin 0 #7d8a96,0 0 1vmin rgba(0,0,0,.4)}
 .tile.lock{background:#d9dee2}
-#picker .tile{flex:0 0 auto;width:min(9vmin,64px);height:min(8vmin,56px);border-radius:1.6vmin;border-width:.5vmin;box-shadow:0 .5vmin 0 rgba(0,0,0,.18)}#picker .tile.sel{transform:scale(1.04)}#picker .tile .num{font-size:min(6vmin,36px)}#picker .tile.new{animation:pop 1s ease-out infinite alternate}#picker .row{gap:1vmin;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:.8vmin .6vmin;max-width:100%;scrollbar-width:none}#picker .row::-webkit-scrollbar{display:none}#picker{pointer-events:auto;width:min(96vw,760px);box-sizing:border-box}#end.won{gap:1.5vmin}#end.won .big{padding-top:1.4vmin;padding-bottom:1.4vmin;font-size:min(5vmin,30px)}
+#picker .tile{flex:0 0 auto;width:min(9vmin,64px);height:min(8vmin,56px);border-radius:1.6vmin;border-width:.5vmin;box-shadow:0 .5vmin 0 rgba(0,0,0,.18)}#picker .tile.sel{transform:scale(1.04)}#picker .tile .num{font-size:min(6vmin,36px)}#picker .tile.new{position:relative;animation:pop 1s ease-out infinite alternate;box-shadow:0 0 0 .4vmin #e8d056,0 .5vmin 0 rgba(0,0,0,.18)}#picker .tile.new::after{content:'NEW';position:absolute;top:-.7em;right:-.4em;background:#e8d056;color:#5a4010;font:900 min(3.2vmin,13px)/1 system-ui,sans-serif;padding:.2em .45em;border-radius:.7em;pointer-events:none;box-shadow:0 .2vmin 0 rgba(0,0,0,.2)}#picker .row{gap:1vmin;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding:1.6vmin .6vmin .8vmin;max-width:100%;scrollbar-width:none}#picker .row::-webkit-scrollbar{display:none}#picker{pointer-events:auto;width:min(96vw,760px);box-sizing:border-box}#end.won{gap:1.5vmin}#end.won .big{padding-top:1.4vmin;padding-bottom:1.4vmin;font-size:min(5vmin,30px)}
 @keyframes pop{from{transform:scale(1)}to{transform:scale(1.12)}}
 </style>
 </head>
@@ -66,7 +66,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#83b87d;touch-action:n
 </div>
 <div id="end" class="ov hide">
   <div style="flex:1"></div>
-  <div id="picker" class="card hide" style="padding:1.2vmin 2vmin;gap:.6vmin"><div class="row" id="endponies"></div><div class="row" id="endhats"></div><div class="row" id="endcapes"></div><div class="row" id="endballs"></div><div class="row" id="endalleys"></div></div>
+  <div id="picker" class="card hide" style="padding:1.2vmin 2vmin;gap:.6vmin"><div class="row" id="endponies"></div><div class="row" id="endhats"></div><div class="row" id="endcapes"></div></div>
   <div class="row" style="margin-bottom:6vmin">
     <button class="big" id="next">▶ Next race</button>
     <button class="big small" id="again">⟲</button>
