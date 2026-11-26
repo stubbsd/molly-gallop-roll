@@ -68,6 +68,8 @@ const SFX={
  ding(n){if(!AC)return;const t=AC.currentTime;for(let i=0;i<n;i++)tone(660*Math.pow(1.26,i),t+i*.1,.25,'sine',.15)},
  fanfare(){if(!AC)return;const t=AC.currentTime+.05;[[392,0,.14],[523,.15,.14],[659,.3,.14],[784,.45,.45],[659,.95,.14],[784,1.1,.6]].forEach(([f,d,l])=>{tone(f,t+d,l,'square',.07,f*1.002);tone(f*2,t+d,l,'triangle',.06)});tone(196,t+.45,1.2,'triangle',.08)},
  cheer(){if(!AC)return;const t=AC.currentTime;noise(t,1.6,.22,1400,.4);[523,659,784,1047].forEach((f,i)=>tone(f,t+i*.14,.5,'triangle',.18));},
+ drumStart(){if(!AC||save.muted||SFX._dr)return;const g=AC.createGain();g.gain.value=0;g.connect(AC.destination);g.gain.setTargetAtTime(.07,AC.currentTime,.12);const beat=()=>{if(!SFX._dr||save.muted||!AC)return;const t=AC.currentTime;const o=AC.createOscillator(),eg=AC.createGain();o.type='sine';o.frequency.setValueAtTime(88,t);o.frequency.exponentialRampToValueAtTime(52,t+.14);eg.gain.setValueAtTime(.1,t);eg.gain.exponentialRampToValueAtTime(.001,t+.2);o.connect(eg).connect(g);o.start(t);o.stop(t+.22);noise(t,.07,.05,160,1,'lowpass')};beat();SFX._dr={g,iv:setInterval(beat,200)}},
+ drumStop(){const d=SFX._dr;if(!d)return;clearInterval(d.iv);try{d.g.gain.setTargetAtTime(0,AC.currentTime,.2)}catch(e){}SFX._dr=null},
  miss(){if(!AC)return;const t=AC.currentTime;tone(400,t,.3,'sine',.12,250)}
 };
 // ---------- background music: an original, gentle music-box loop synthesised live ----------
@@ -108,7 +110,7 @@ function makeRace(level,players){
 
  const humans=Math.max(1,Math.min(4,players));
  return{level,g,gx,holes,pegs,theme:ALLEYS[ALLEY()],cpuSkill:Math.min(.75,.3+L*.045),
-  horses:COLORS.map((c,i)=>({i,pos:0,shown:0,human:i<humans,finished:0,ga:null})),turn:0,humans,finishOrder:[]};
+  horses:COLORS.map((c,i)=>({i,pos:0,shown:0,human:i<humans,finished:0,ga:null})),turn:0,humans,finishOrder:[],rival:1+(Math.random()*3|0)};
 }
 // ---------- state ----------
 let state='menu',ball={x:START.x,y:START.y,vx:0,vy:0,on:false},msg=null,anim=null,effects=[],t0=performance.now(),lastT=t0,time=0;
@@ -146,10 +148,26 @@ function launch(vx,vy){
  ball.vx=vx;ball.vy=vy;ball.on=true;state='rolling';ball.t=0;SFX.rollStart();
  // solo: CPU horses decide their own results off-screen on their own clocks (see update)
 }
-// simple, fair CPU roll for solo races: mostly small gallops, sometimes a miss, rarely a big one
-function cpuQuickRoll(h){const L=Math.min(G.level,10),r=Math.random();
- const w=[.6-(L-1)*.02,.3,.1+(L-1)*.008,.04+(L-1)*.006,.01+(L-1)*.004]; /* gentle, flat: Molly should usually win */let a=0,v=0;const tot=w.reduce((x,y)=>x+y);for(let k=0;k<5;k++){a+=w[k]/tot;if(r<a){v=k;break}}
- if(v>0&&h.pos<TRACK)startGallop(h,v)}
+// gentle rubber-banding: a CPU behind Molly throws a bit more often / accurately; one ahead eases off.
+// One designated rival stays close. Tuned so a steady thrower wins about 60-70% with a tight pack.
+function pe(h){return h.ga?h.ga.from+h.ga.n:h.pos}
+function cpuBand(h){
+ const L=Math.min(G.level,10),molly=G.horses.find(x=>x.human)||G.horses[0],gap=pe(molly)-pe(h),isR=h.i===G.rival;
+ const nearEnd=pe(molly)>=Math.min(TRACK-5,TRACK*.78);
+ const behind=Math.max(0,Math.min(1,gap/3.5)),ahead=Math.max(0,Math.min(1,(-gap)/3));
+ const wCatch=isR?[.13,.29,.30,.19,.09]:[.17,.35,.29,.14,.05];
+ const wEven =isR?[.18,.35,.29,.13,.05]:[.27,.39,.23,.09,.02];
+ const wEase =isR?[.31,.39,.20,.07,.03]:[.42,.40,.15,.03,0];
+ const mid=Math.max(0,1-behind-ahead);
+ const w=wCatch.map((_,k)=>wCatch[k]*behind+wEven[k]*mid+wEase[k]*ahead);
+ const tight=(L-1)/9;if(isR){w[0]*=1-.12*tight;w[2]+=.03*tight;w[3]+=.025*tight}
+ const interval=(isR?2.8:3.2)-(isR?.48:.38)*behind+(isR?1.1:1.35)*ahead+(nearEnd&&!isR?.3:0)-.07*tight+Math.random()*.72;
+ return{w,next:Math.max(2.05,interval)}
+}
+function cpuQuickRoll(h){if(h.pos>=TRACK)return;const {w}=cpuBand(h);let a=0,v=0,r=Math.random(),tot=w.reduce((x,y)=>x+y);for(let k=0;k<5;k++){a+=w[k]/tot;if(r<a){v=k;break}}if(v>0)startGallop(h,v)}
+function leadHorse(){if(!G)return null;let b=G.horses[0];for(const h of G.horses){if(h.shown>b.shown+.02||(Math.abs(h.shown-b.shown)<.02&&G.lead===h.i))b=h}return G.lead=b.i,b}
+function neckAndNeck(){if(!G||state==='finish'||state==='menu')return false;const hs=G.horses.slice().sort((a,b)=>b.shown-a.shown);return hs[0].shown>=TRACK-6&&hs[0].shown<TRACK&&hs[0].shown-hs[1].shown<=2.4}
+function wantPhoto(){if(!G||G.photoDone||state==='finish'||state==='menu')return false;const hs=G.horses.slice().sort((a,b)=>b.shown-a.shown);const close=hs[0].shown-hs[1].shown<=1.4;const finishing=hs.some(h=>h.shown>=TRACK-1.8||(h.ga&&h.ga.from+h.ga.n>=TRACK&&h.shown>=TRACK-2.2));return close&&finishing}
 function startGallop(h,n){if(h.ga){const add=Math.min(n,TRACK-(h.ga.from+h.ga.n));if(add>0){h.ga.n+=add;SFX.ding(add);effects.push({type:'plus',n:add,i:h.i,t:0})}return}
  n=Math.min(n,TRACK-h.pos);if(n<=0)return;h.ga={from:h.pos,n,t:0,k:0};SFX.ding(n);effects.push({type:'plus',n,i:h.i,t:0})}
 function cpuRoll(){
@@ -191,8 +209,12 @@ function sink(h){
 function missed(){SFX.rollStop();SFX.miss();ball.on=false;state='returning';SFX.rollStart();SFX.roll(500);anim={type:'back',t:0,x:ball.x,y:ball.y,v:0}}
 // ---------- update ----------
 function update(dt){
+ if(G&&!G.photoDone&&wantPhoto()){G.photo=2.2;G.photoDone=1;G.photoFlash=1}
+ if(G&&G.photo>0){G.photo=Math.max(0,G.photo-dt);dt*=.38}
+ if(G&&G.photoFlash>0)G.photoFlash=Math.max(0,G.photoFlash-dt*2);
  time+=dt;
- if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=Math.max(2.6,3.6-(Math.min(G.level,10)-1)*.11)+Math.random()*1.2}}if(shake>0)shake=Math.max(0,shake-dt);
+ if(SOLO()&&state!=='finish'&&state!=='menu'&&(neckAndNeck()||(G.photo>0)))SFX.drumStart();else SFX.drumStop();
+ if(SOLO()&&state!=='finish'&&state!=='menu'&&!G.finishOrder.length)for(const h of G.horses){if(h.human)continue;if(h.next==null)h.next=.6+Math.random()*1.2;h.next-=dt;if(h.next<=0){cpuQuickRoll(h);h.next=cpuBand(h).next}}if(shake>0)shake=Math.max(0,shake-dt);
  if(state==='rolling'){const pd=dt*1.15,n=Math.ceil(pd/(1/240));for(let i=0;i<n&&state==='rolling';i++)step(pd/n)} // brisker, less floaty roll (same paths)
  else if(state==='dropping'){anim.t+=dt;if(anim.t>.32){state='returning';SFX.rollStart();SFX.roll(500);anim={type:'trough',t:0,v:anim.h.v*(anim.h.bonus?2:1),bonus:!!anim.h.bonus,y:anim.h.y}}}
  else if(state==='returning'){anim.t+=dt;const dur=anim.type==='trough'?.65:.4;if(anim.t>=dur){SFX.rollStop();
@@ -203,7 +225,7 @@ function update(dt){
    if(g.t>=g.n*per+.35){h.pos=g.from+g.n;h.shown=h.pos;h.ga=null;
      if(h.pos>=TRACK){h.pos=TRACK;h.shown=TRACK;if(!G.finishOrder.includes(h.i))G.finishOrder.push(h.i);SFX.cheer()}
      if(state==='galloping'&&h===cur())nextTurn()}}
- if(SOLO()&&G.finishOrder.length&&(state==='aim'||state==='settle')&&!G.horses.some(h=>h.ga))finishRace();
+ if(SOLO()&&G.finishOrder.length&&(state==='aim'||state==='settle')&&!G.horses.some(h=>h.ga)&&!(G.photo>0))finishRace();
  for(const e of effects)e.t+=dt;effects=effects.filter(e=>e.t<2);
  if(msg){msg.t+=dt;if(msg.t>msg.d)msg=null}
 }
@@ -358,6 +380,9 @@ function trackStatic(){
   cx.strokeStyle='rgba(60,60,40,.18)';cx.lineWidth=5;cx.beginPath();cx.moveTo(l,y+2);cx.lineTo(r,y+2);cx.stroke();
   if(G.level>=3){const gg=cx.createLinearGradient(0,y-2,0,y+2);gg.addColorStop(0,'#f1ecc8');gg.addColorStop(.5,'#e4c25a');gg.addColorStop(1,'#af8a1e');cx.strokeStyle=gg;cx.lineWidth=4}else{cx.strokeStyle='#fff';cx.lineWidth=3.2}cx.lineCap='round';cx.beginPath();cx.moveTo(l,y);cx.lineTo(r,y);cx.stroke()}
 }
+function drawLeadMark(x,y,hs){const p=.7+.3*Math.sin(time*5);cx.save();cx.translate(x,y-40*hs);cx.globalAlpha=.5+.5*p;cx.shadowColor='#e8d056';cx.shadowBlur=14*hs*p;drawStar(0,0,6.5*hs*(.85+.2*p),time);cx.shadowBlur=0;cx.strokeStyle='rgba(232,208,86,'+(0.45+0.4*p)+')';cx.lineWidth=1.8*hs;cx.beginPath();cx.ellipse(0,16*hs,13*hs,4.5*hs,0,0,7);cx.stroke();cx.restore()}
+function drawNeckSpark(x,y,hs,i){cx.save();for(let k=0;k<4;k++){const ph=(time*1.6+k*1.3+i*.7),a=.35+.45*Math.max(0,Math.sin(ph*2));if(a<.08)continue;cx.globalAlpha=a;drawStar(x+(Math.sin(ph*1.4+k)*18)*hs,y-(28+Math.cos(ph*1.1+k)*10)*hs,(2.2+1.6*a)*hs,time+k)}cx.restore()}
+function drawPhoto(){if(!G||!(G.photo>0||G.photoFlash>0))return;const w=W(),h=L.track.y+L.track.h+12;const fl=G.photoFlash||0,a=Math.min(.28,fl*.4+(G.photo>0?.06:0));cx.fillStyle=`rgba(255,248,220,${a})`;cx.fillRect(0,0,w,h);const vg=cx.createLinearGradient(0,0,0,h);vg.addColorStop(0,'rgba(40,30,10,'.concat(.12*(G.photo>0?1:fl),')'));vg.addColorStop(.4,'rgba(40,30,10,0)');vg.addColorStop(1,'rgba(40,30,10,'.concat(.16*(G.photo>0?1:fl),')'));cx.fillStyle=vg;cx.fillRect(0,0,w,h)}
 function drawTrack(){
  const t=L.track;cached('track'+G.turn+(state==='finish'),()=>trackStatic());
  if(G.level>=4)for(let i=0;i<4;i++){const q=laneGeo(i),fx=q.fx+q.h*.35+6*q.k;for(let k=0;k<4;k++){const ph=time*2.5+i*1.7+k*2.1,a=Math.max(0,Math.sin(ph));if(a<.05)continue;const y=q.y+q.h*((k*.27+i*.13+Math.floor(ph/Math.PI)*.37)%1);cx.globalAlpha=a;drawStar(fx+Math.sin(ph*1.3)*5*q.k,y,(2.5+2.5*a)*q.k,time+k);cx.globalAlpha=1}}
@@ -370,7 +395,9 @@ function drawTrack(){
   const x=q.sx+(q.fx-q.sx)*h.shown/TRACK,y=q.y+q.h/2+11*Math.min(q.h/50,(q.fx-q.sx)/16/22,2.4),hs=Math.min(q.h/50,(q.fx-q.sx)/16/22,2.4);
   if(moving){cx.fillStyle='rgba(120,70,30,.3)';for(let k=h.ga?h.ga.from:0;h.ga&&k<h.shown-.2;k+=.5){const px=q.sx+(q.fx-q.sx)*k/TRACK;cx.beginPath();cx.ellipse(px,y+2,3*q.k,1.8*q.k,0,0,7);cx.fill()}}
   if(moving){const dp=i===0?STABLE[PONY()]:COLORS[i];cx.save();cx.fillStyle=dp.c;cx.strokeStyle=dp.d;cx.lineWidth=1.2*hs;for(let k=0;k<5;k++){const ph=(time*2.2+k/5+i*.13)%1;cx.globalAlpha=.75*(1-ph);cx.beginPath();cx.arc(x-(16+ph*30)*hs,y+(20-ph*8-(k%2)*3)*hs,(3+ph*6)*hs,0,7);cx.fill();cx.globalAlpha*=.8;cx.stroke()}cx.restore()}
-  drawHorse(x,y-(moving?Math.abs(Math.sin(time*7+i))*3.2*hs:0),hs,i,moving?time*14:0,G.turn===i&&state!=='finish'&&!SOLO())}
+  const hy=y-(moving?Math.abs(Math.sin(time*7+i))*3.2*hs:0);drawHorse(x,hy,hs,i,moving?time*14:0,G.turn===i&&state!=='finish'&&!SOLO());
+  if(state!=='finish'&&leadHorse()&&G.lead===i)drawLeadMark(x,hy,hs);
+  if(state!=='finish'&&neckAndNeck())drawNeckSpark(x,hy,hs,i);}
  for(const e of effects)if(e.type==='cpuball'&&e.t<1.2){const q=laneGeo(e.i),bx=q.lm+q.h*.45+q.h*.55,by=q.y+q.h*.5-Math.abs(Math.sin(e.t*7))*q.h*.25*(1-e.t/1.2),r=q.h*.14;
   cx.globalAlpha=Math.min(1,(1.2-e.t)*3);blob(bx,by,r,r,0,rg(bx,by,r,'#fff',BALLC[e.i],shade(BALLC[e.i])));
   if(e.v===0&&e.t>.5){cx.fillStyle='rgba(255,255,255,.9)';cx.font=`900 ${q.h*.3}px system-ui,sans-serif`;cx.textAlign='center';cx.textBaseline='middle';cx.fillText('oops',bx+q.h*.4,q.y+q.h*.3)}
@@ -593,7 +620,7 @@ function frame(now){const dt=Math.min(.05,(now-lastT)/1000)*SPEED;lastT=now;
  cx.clearRect(0,0,W(),H());
  const bg=cx.createLinearGradient(0,0,0,H());const T=bgT();bg.addColorStop(0,T[3]);bg.addColorStop(.35,T[4]);bg.addColorStop(1,T[5]);cx.fillStyle=bg;cx.fillRect(0,0,W(),H());
  if(G)drawParallax();
- if(G){drawTrack();const sk=shake>0?shake*14:0;cx.save();cx.translate(0,sk*Math.sin(time*90)*.5+sk*.3);drawAlley();cx.restore();drawMsg();drawX2();if(state==='finish')drawFinish()}
+ if(G){drawTrack();drawPhoto();const sk=shake>0?shake*14:0;cx.save();cx.translate(0,sk*Math.sin(time*90)*.5+sk*.3);drawAlley();cx.restore();drawMsg();drawX2();if(state==='finish')drawFinish()}
  requestAnimationFrame(frame)}
 // ---------- input ----------
 cv.addEventListener('pointerdown',e=>{unlock();if(state!=='aim')return;const p=toWorld(e.offsetX,e.offsetY);
@@ -612,7 +639,7 @@ function buildMenu(){save.players=1;if($('cupcount'))$('cupcount').textContent='
  $('stars').textContent='Race '+save.level+'  '+'★'.repeat(Math.min(5,Math.ceil(save.level/2)))}
 function begin(){unlock();$('stable').classList.add('hide');$('stable').classList.remove('on');$('menu').classList.add('hide');$('menu').classList.remove('on');$('end').classList.add('hide');$('end').classList.remove('on');$('home').classList.remove('hide');
  G=makeRace(save.level,1);effects=[];startTurn()}
-function home(){SFX.rollStop();state='menu';G=null;$('end').classList.add('hide');$('menu').classList.remove('hide');$('menu').classList.add('on');$('home').classList.add('hide');buildMenu()}
+function home(){SFX.rollStop();SFX.drumStop();state='menu';G=null;$('end').classList.add('hide');$('menu').classList.remove('hide');$('menu').classList.add('on');$('home').classList.add('hide');buildMenu()}
 function portrait(pony,hat,cape){const c=document.createElement('canvas');c.width=160;c.height=130;const g=c.getContext('2d');const real=cx;cx=g;try{
  if(cape!=null){g.translate(95,85);g.scale(3,3);g.translate(8,8);drawCape(cape,0)}else if(pony!=null){PORTRAIT=pony;HATNONE=true;drawHorse(70,92,1.35,0,0,false)}else{g.translate(80,90);g.scale(3.2,3.2);g.translate(-25,36);drawHat(hat)}}finally{cx=real;PORTRAIT=null;HATNONE=false}return c.toDataURL()}
 const _pc={};function pimg(k,pony,hat,cape){return _pc[k]||(_pc[k]=portrait(pony,hat,cape))}
@@ -627,11 +654,11 @@ function closeStable(){$('stable').classList.add('hide');$('stable').classList.r
 function showUnlocks(){const won=G&&G.horses[G.podium[0]].human;$('picker').classList.toggle('hide',!won);$('end').classList.toggle('won',!!won);if(won)buildStable($('endponies'),$('endhats'),G.newUnlocks||[])}
 $('stablebtn').onclick=openStable;$('stabledone').onclick=closeStable;
 $('play').onclick=begin;$('next').onclick=begin;$('again').onclick=home;$('home').onclick=home;
-$('mute').onclick=()=>{save.muted=!save.muted;persist();$('mute').textContent=save.muted?'🔇':'🔊';if(save.muted){SFX.rollStop();musicStop()}else{unlock();musicStart()}};
+$('mute').onclick=()=>{save.muted=!save.muted;persist();$('mute').textContent=save.muted?'🔇':'🔊';if(save.muted){SFX.rollStop();SFX.drumStop();musicStop()}else{unlock();musicStart()}};
 $('music').onclick=()=>{unlock();save.music=save.music===false;persist();musicIcon();if(save.music)musicStart();else musicStop()};
 function musicIcon(){$('music').classList.toggle('off',save.music===false)}musicIcon();
 window.__music=MUS;$('mute').textContent=save.muted?'🔇':'🔊';
-document.addEventListener('visibilitychange',()=>{if(document.hidden)SFX.rollStop()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){SFX.rollStop();SFX.drumStop()}});
 window.addEventListener('resize',layout);window.addEventListener('orientationchange',()=>setTimeout(layout,200));
 document.addEventListener('gesturestart',e=>e.preventDefault());
 layout();buildMenu();
@@ -640,5 +667,5 @@ G=makeRace(save.level,1);state='menu';
 requestAnimationFrame(frame);
 // test hooks (harmless in play)
 window.__sheet=(c,ponies,hats,ph,capes)=>{const g=c.getContext('2d');const real=cx,sh=save.hat,sw=save.wins,sc=save.cape;cx=g;save.wins=99;try{g.fillStyle='#e3eaf2';g.fillRect(0,0,c.width,c.height);ponies.forEach((p,r)=>hats.forEach((h,k)=>{PORTRAIT=p;save.hat=h;save.cape=capes?capes[k]:0;drawHorse(110+k*260,170+r*250,3.2,0,ph||0,false)}))}finally{cx=real;PORTRAIT=null;save.hat=sh;save.wins=sw;save.cape=sc}};
-window.__gr={drawHorse:(...a)=>drawHorse(...a),get state(){return state},get G(){return G},get ball(){return ball},launch:(vx,vy)=>{if(state==='aim')launch(vx,vy)},begin,home,save:()=>save,win:()=>{G.finishOrder=[0];finishRace()},toScreen:(x,y)=>{const q=P(x,y);return{x:q.x,y:q.y}}};
+window.__gr={drawHorse:(...a)=>drawHorse(...a),get state(){return state},get G(){return G},get ball(){return ball},launch:(vx,vy)=>{if(state==='aim')launch(vx,vy)},begin,home,save:()=>save,win:()=>{G.finishOrder=[0];finishRace()},toScreen:(x,y)=>{const q=P(x,y);return{x:q.x,y:q.y}},lead:()=>G&&G.lead,photo:()=>G&&G.photo,neck:()=>neckAndNeck(),setPack:(a)=>{if(!G)return;a.forEach((p,i)=>{const h=G.horses[i];h.pos=p;h.shown=p;h.ga=null});leadHorse()},setPhoto:()=>{if(!G)return;const t=TRACK;G.horses.forEach((h,i)=>{h.pos=t-1.2-i*.15;h.shown=h.pos;h.ga={from:h.pos,n:t-h.pos,t:0,k:0}});G.photo=0;G.photoDone=0;leadHorse()}};
 })();
