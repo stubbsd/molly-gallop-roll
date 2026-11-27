@@ -54,34 +54,38 @@ function tone(f,t0,dur,type='sine',vol=.2,f2){if(save.muted||!AC)return;const o=
 function noise(t0,dur,vol,freq,q=1,type='bandpass'){if(save.muted||!AC)return;const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type=type;f.frequency.value=freq;f.Q.value=q;const g=AC.createGain();g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);s.connect(f).connect(g).connect(AC.destination);s.start(t0,Math.random()*.5);s.stop(t0+dur)}
 
 function sfxDest(){if(!AC)return null;if(!SFX._bus){const g=AC.createGain();g.gain.value=1;const c=AC.createDynamicsCompressor();c.threshold.value=-20;c.knee.value=12;c.ratio.value=5;c.attack.value=.003;c.release.value=.16;g.connect(c).connect(AC.destination);SFX._bus=g}return SFX._bus}
-function makeWoodNoise(ctx){const n=ctx.sampleRate,b=ctx.createBuffer(1,n,n),d=b.getChannelData(0);let x=0;for(let i=0;i<n;i++){x=.97*x+(Math.random()*2-1);d[i]=x*.4+(Math.random()*2-1)*.12}return b}
-function woodHit(ctx,dest,t,f,vol,dur){if(!ctx||!dest||vol<=0)return;
- [[f,1,'sine'],[f*1.74,.42,'triangle'],[f*2.52,.2,'sine'],[f*3.35,.1,'triangle']].forEach(([ff,k,tp])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type=tp;o.frequency.setValueAtTime(ff,t);o.frequency.exponentialRampToValueAtTime(Math.max(35,ff*.84),t+dur);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(Math.max(.0001,vol*k),t+.0035);g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(g).connect(dest);o.start(t);o.stop(t+dur+.03)});
- const nbuf=woodBufFor(ctx);if(nbuf){const src=ctx.createBufferSource();src.buffer=nbuf;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=Math.min(4000,f*2.1);bp.Q.value=3.5;const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol*.28,t+.002);g.gain.exponentialRampToValueAtTime(.0008,t+Math.min(.06,dur));src.connect(bp).connect(g).connect(dest);src.start(t);src.stop(t+Math.min(.07,dur)+.02)}}
+function makeMetalNoise(ctx){const n=ctx.sampleRate,b=ctx.createBuffer(1,n,n),d=b.getChannelData(0);let x=0;for(let i=0;i<n;i++){x=.86*x+(Math.random()*2-1);d[i]=x*.28+(Math.random()*2-1)*.55}return b}
+function metalBufFor(ctx){if(!ctx)return null;if(ctx===AC)return ensureMetalBuf();if(!ctx._metN)ctx._metN=makeMetalNoise(ctx);return ctx._metN}
+function ensureMetalBuf(){if(!AC)return null;if(!SFX._nbuf)SFX._nbuf=makeMetalNoise(AC);return SFX._nbuf}
+function metalHit(ctx,dest,t,f,vol,dur){if(!ctx||!dest||vol<=0)return;
+ const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=4600;lp.Q.value=.5;const bus=ctx.createGain();bus.connect(lp).connect(dest);
+ const parts=[[1,1],[1.53,.5],[2.27,.28],[3.14,.15],[4.02,.08],[5.08,.04]];
+ parts.forEach(([r,k],i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type=i%2?'triangle':'sine';const ff=f*r;o.frequency.setValueAtTime(ff,t);o.frequency.exponentialRampToValueAtTime(Math.max(60,ff*.97),t+dur);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(Math.max(.0001,vol*k),t+.0018);g.gain.exponentialRampToValueAtTime(.0008,t+dur*(.7+i*.06));o.connect(g).connect(bus);o.start(t);o.stop(t+dur+.04)});
+ const nbuf=metalBufFor(ctx);if(nbuf){const src=ctx.createBufferSource();src.buffer=nbuf;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=Math.min(3800,f*1.8+400);bp.Q.value=2.4;const g=ctx.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol*.22,t+.0012);g.gain.exponentialRampToValueAtTime(.0008,t+Math.min(.04,dur*.5));src.connect(bp).connect(g).connect(bus);src.start(t);src.stop(t+.05)}}
 function synthDrop(ctx,dest,t0,nbuf){
- woodHit(ctx,dest,t0,1860,.15,.05);woodHit(ctx,dest,t0,680,.11,.07);
- const t1=t0+.016;woodHit(ctx,dest,t1,88,.26,.24);woodHit(ctx,dest,t1,142,.15,.2);woodHit(ctx,dest,t1,230,.07,.14);
- if(nbuf){const src=ctx.createBufferSource();src.buffer=nbuf;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=270;bp.Q.value=4.5;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=800;const g=ctx.createGain();g.gain.setValueAtTime(0,t1);g.gain.linearRampToValueAtTime(.11,t1+.008);g.gain.exponentialRampToValueAtTime(.0008,t1+.12);src.connect(bp).connect(lp).connect(g).connect(dest);src.start(t1);src.stop(t1+.14)}
- woodHit(ctx,dest,t0+.125,1040,.085,.07);woodHit(ctx,dest,t0+.125,250,.075,.11);
- woodHit(ctx,dest,t0+.22,1180,.038,.06);woodHit(ctx,dest,t0+.22,280,.032,.09);
+ // bright clunk into a tin cup, then a short metallic ring, then a little settling clatter
+ metalHit(ctx,dest,t0,310,.24,.1);
+ metalHit(ctx,dest,t0,980,.17,.18);
+ metalHit(ctx,dest,t0+.006,1480,.1,.16);
+ if(nbuf){const src=ctx.createBufferSource();src.buffer=nbuf;const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=2100;bp.Q.value=2.2;const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=4200;const g=ctx.createGain();g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(.12,t0+.002);g.gain.exponentialRampToValueAtTime(.0008,t0+.07);src.connect(bp).connect(lp).connect(g).connect(dest);src.start(t0);src.stop(t0+.09)}
+ [[.09,1620,.07,.04],[.138,1240,.055,.035],[.185,1880,.045,.03],[.242,1410,.03,.028],[.31,1700,.02,.025]].forEach(([dt,f,v,d])=>metalHit(ctx,dest,t0+dt,f,v,d));
 }
 function startReturnBody(ctx,dest,nbuf,t0){const src=ctx.createBufferSource();src.buffer=nbuf;src.loop=true;
- const modes=[[92,2.2,.22],[245,7,.42],[615,8.5,.36],[1260,6,.22]].map(([f,q,g0])=>{const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=f;bp.Q.value=q;const g=ctx.createGain();g.gain.value=0;src.connect(bp).connect(g).connect(dest);return{bp,g,f,g0}});
+ const modes=[[520,1.6,.1],[1020,6.5,.2],[1740,8,.18],[2680,7,.12],[3950,5,.06]].map(([f,q,g0])=>{const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=f;bp.Q.value=q;const g=ctx.createGain();g.gain.value=0;src.connect(bp).connect(g).connect(dest);return{bp,g,f,g0}});
  try{src.start(t0||0)}catch(e){src.start()}
  return{src,modes,lastTick:t0==null?-1:(t0-.01),t0:t0||0};
 }
-function shapeReturn(ret,t,spd,ramp){ret.modes.forEach(m=>{const fn=ramp?'setValueAtTime':'setTargetAtTime';m.bp.frequency[fn](m.f*(.82+spd*.4),t,...(ramp?[]:[.05]));m.g.gain[fn](m.g0*spd*(.3+spd*.75)*.2,t,...(ramp?[]:[.05]))})}
-function tickGap(spd){return.032+.13*(1-spd)*(1-spd)}
-function returnTick(ctx,dest,t,spd){woodHit(ctx,dest,t,820+spd*480,.022+.03*spd,.028)}
+function shapeReturn(ret,t,spd,ramp){ret.modes.forEach(m=>{const fn=ramp?'setValueAtTime':'setTargetAtTime';m.bp.frequency[fn](m.f*(.88+spd*.28),t,...(ramp?[]:[.05]));m.g.gain[fn](m.g0*spd*(.25+spd*.8)*.16,t,...(ramp?[]:[.05]))})}
+function tickGap(spd){return.028+.14*(1-spd)*(1-spd)}
+function returnTick(ctx,dest,t,spd){metalHit(ctx,dest,t,1320+spd*700,.018+.028*spd,.022)}
+function trayClack(ctx,dest,t){metalHit(ctx,dest,t,640,.1,.07);metalHit(ctx,dest,t,1280,.06,.05);metalHit(ctx,dest,t,290,.07,.08)}
 function bakeReturn(ctx,dest,t0,dur,nbuf){const ret=startReturnBody(ctx,dest,nbuf,t0);
  for(let i=0;i<=48;i++){const u=i/48,t=t0+u*dur,spd=Math.max(.05,1-Math.pow(u,1.4));shapeReturn(ret,t,spd,true)}
  let t=t0+.02;while(t<t0+dur-.04){const u=Math.min(1,(t-t0)/dur),spd=Math.max(.05,1-Math.pow(u,1.4));returnTick(ctx,dest,t,spd);t+=tickGap(spd)}
- ret.modes.forEach(m=>{m.g.gain.setValueAtTime(m.g.gain.value||.001,t0+dur);m.g.gain.exponentialRampToValueAtTime(.0008,t0+dur+.12)});
- try{ret.src.stop(t0+dur+.2)}catch(e){}
- woodHit(ctx,dest,t0+dur,400,.13,.11);woodHit(ctx,dest,t0+dur,165,.1,.15);
+ ret.modes.forEach(m=>{m.g.gain.setValueAtTime(m.g.gain.value||.001,t0+dur);m.g.gain.exponentialRampToValueAtTime(.0008,t0+dur+.1)});
+ try{ret.src.stop(t0+dur+.18)}catch(e){}
+ trayClack(ctx,dest,t0+dur);
 }
-function woodBufFor(ctx){if(!ctx)return null;if(ctx===AC)return ensureWoodBuf();if(!ctx._woodN)ctx._woodN=makeWoodNoise(ctx);return ctx._woodN}
-function ensureWoodBuf(){if(!AC)return null;if(!SFX._nbuf)SFX._nbuf=makeWoodNoise(AC);return SFX._nbuf}
 
 const SFX={
  rollStart(){if(!AC||save.muted||rollNode)return;rollNode=AC.createBufferSource();rollNode.buffer=noiseBuf;rollNode.loop=true;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=240;f.Q.value=.3;const f2=AC.createBiquadFilter();f2.type='lowpass';f2.frequency.value=320;f2.Q.value=.2;rollGain=AC.createGain();rollGain.gain.value=0;rollNode.connect(f).connect(f2).connect(rollGain).connect(AC.destination);rollNode.start()},
@@ -91,13 +95,13 @@ const SFX={
  drop(){if(!AC||save.muted)return;const t=AC.currentTime,dest=sfxDest();if(!dest)return;
   if(SFX._dropG){try{SFX._dropG.gain.setTargetAtTime(0,t,.01)}catch(e){}}
   const g=AC.createGain();g.gain.value=1;g.connect(dest);SFX._dropG=g;
-  synthDrop(AC,g,t,ensureWoodBuf())},
- returnStart(){if(!AC||save.muted)return;SFX.returnStop(true);const dest=sfxDest();if(!dest)return;SFX._ret=startReturnBody(AC,dest,ensureWoodBuf(),AC.currentTime);SFX._retLive=1;shapeReturn(SFX._ret,AC.currentTime,.9)},
+  synthDrop(AC,g,t,ensureMetalBuf())},
+ returnStart(){if(!AC||save.muted)return;SFX.returnStop(true);const dest=sfxDest();if(!dest)return;SFX._ret=startReturnBody(AC,dest,ensureMetalBuf(),AC.currentTime);SFX._retLive=1;shapeReturn(SFX._ret,AC.currentTime,.9)},
  returnRun(spd){const r=SFX._ret;if(!r||!AC||save.muted)return;const t=AC.currentTime;shapeReturn(r,t,spd);if(r.lastTick<0||t-r.lastTick>=tickGap(spd)){r.lastTick=t;returnTick(AC,sfxDest(),t,spd)}},
  returnStop(silent){const r=SFX._ret;if(!r||!AC){SFX._ret=null;return}const t=AC.currentTime;r.modes.forEach(m=>{try{m.g.gain.setTargetAtTime(0,t,.06)}catch(e){}});try{r.src.stop(t+.22)}catch(e){}
-  if(!silent&&!save.muted){const dest=sfxDest();if(dest){woodHit(AC,dest,t,400,.13,.11);woodHit(AC,dest,t,165,.1,.15)}}
+  if(!silent&&!save.muted){const dest=sfxDest();if(dest)trayClack(AC,dest,t)}
   SFX._ret=null},
- bakeDrop:synthDrop,bakeReturn:bakeReturn,makeWoodNoise:makeWoodNoise,
+ bakeDrop:synthDrop,bakeReturn:bakeReturn,makeWoodNoise:makeMetalNoise,makeMetalNoise:makeMetalNoise,
  rattle(){if(!AC)return;const t=AC.currentTime;for(let i=0;i<7;i++)noise(t+i*.09,.05,.12,900+Math.random()*600,5)},
  clop(i){if(!AC)return;const t=AC.currentTime;noise(t,.05,.35,i%2?1200:900,6);noise(t+.09,.05,.3,i%2?1000:800,6)},
  ding(n){if(!AC)return;const t=AC.currentTime;for(let i=0;i<n;i++)tone(660*Math.pow(1.26,i),t+i*.1,.25,'sine',.15)},
